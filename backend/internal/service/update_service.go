@@ -30,7 +30,9 @@ var (
 const (
 	updateCacheKey = "update_check_cache"
 	updateCacheTTL = 1200 // 20 minutes
-	githubRepo     = "Wei-Shaw/sub2api"
+	// UpdateRepository contains releases built with this fork's BNDS frontend.
+	UpdateRepository = "Ctrl-Creeper/sub2api"
+	githubRepo       = UpdateRepository
 
 	// Security: allowed download domains for updates
 	allowedDownloadHost = "github.com"
@@ -637,11 +639,11 @@ func (s *UpdateService) saveToCache(ctx context.Context, info *UpdateInfo) {
 	_ = s.cache.SetUpdateInfo(ctx, string(data), time.Duration(updateCacheTTL)*time.Second)
 }
 
-// compareVersions compares two semantic versions
+// compareVersions orders upstream versions first, then numeric BNDS revisions.
+// A bare upstream version is revision 0; -1 is a stable fork revision, not an rc.
 func compareVersions(current, latest string) int {
-	currentParts := parseVersion(current)
-	latestParts := parseVersion(latest)
-
+	currentParts, currentPre := parseForkVersion(current)
+	latestParts, latestPre := parseForkVersion(latest)
 	for i := 0; i < 3; i++ {
 		if currentParts[i] < latestParts[i] {
 			return -1
@@ -650,20 +652,45 @@ func compareVersions(current, latest string) int {
 			return 1
 		}
 	}
+	if currentPre != latestPre {
+		if currentPre == "" {
+			return 1
+		}
+		if latestPre == "" {
+			return -1
+		}
+		return strings.Compare(currentPre, latestPre)
+	}
+	if currentParts[3] < latestParts[3] {
+		return -1
+	}
+	if currentParts[3] > latestParts[3] {
+		return 1
+	}
 	return 0
 }
 
-func parseVersion(v string) [3]int {
+func parseForkVersion(v string) ([4]int, string) {
 	v = strings.TrimPrefix(v, "v")
-	if idx := strings.IndexByte(v, '-'); idx != -1 {
-		v = v[:idx]
+	base, suffix, _ := strings.Cut(v, "-")
+	result := [4]int{}
+	// The final numeric segment belongs to this fork; preceding text belongs to upstream.
+	prerelease := suffix
+	if suffix != "" {
+		last := strings.LastIndexByte(suffix, '-')
+		if revision, err := strconv.Atoi(suffix[last+1:]); err == nil && revision > 0 {
+			result[3] = revision
+			prerelease = ""
+			if last >= 0 {
+				prerelease = suffix[:last]
+			}
+		}
 	}
-	parts := strings.Split(v, ".")
-	result := [3]int{0, 0, 0}
+	parts := strings.Split(base, ".")
 	for i := 0; i < len(parts) && i < 3; i++ {
 		if parsed, err := strconv.Atoi(parts[i]); err == nil {
 			result[i] = parsed
 		}
 	}
-	return result
+	return result, prerelease
 }

@@ -93,39 +93,21 @@
   <!-- Default Home Page -->
   <div
     v-else
-    class="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-primary-50/30 to-gray-100 dark:from-dark-950 dark:via-dark-900 dark:to-dark-950"
+    class="relay-home relative flex min-h-screen flex-col overflow-hidden bg-gray-50 dark:bg-dark-950"
   >
-    <!-- Background Decorations -->
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        class="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-primary-400/20 blur-3xl"
-      ></div>
-      <div
-        class="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-primary-500/15 blur-3xl"
-      ></div>
-      <div
-        class="absolute left-1/3 top-1/4 h-72 w-72 rounded-full bg-primary-300/10 blur-3xl"
-      ></div>
-      <div
-        class="absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full bg-primary-400/10 blur-3xl"
-      ></div>
-      <div
-        class="absolute inset-0 bg-[linear-gradient(rgba(20,184,166,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(20,184,166,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"
-      ></div>
-    </div>
-
     <!-- Header -->
-    <header class="relative z-20 px-6 py-4">
-      <nav class="mx-auto flex max-w-6xl items-center justify-between">
+    <header class="relative z-20 border-b border-gray-200 px-4 py-5 dark:border-dark-700 sm:px-6">
+      <nav class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
         <!-- Logo -->
-        <div class="flex items-center">
-          <div class="h-10 w-10 overflow-hidden rounded-xl shadow-md">
+        <div class="flex min-w-0 items-center gap-3">
+          <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
             <img :src="siteLogo || '/logo.svg'" alt="Logo" class="h-full w-full object-contain" />
           </div>
+          <span class="[overflow-wrap:anywhere] text-base sm:text-lg font-semibold tracking-tight">{{ siteName }}</span>
         </div>
 
         <!-- Nav Actions -->
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2">
           <!-- Language Switcher -->
           <LocaleSwitcher />
 
@@ -191,7 +173,7 @@
           <router-link
             v-else
             to="/login"
-            class="inline-flex items-center rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
+            class="inline-flex items-center rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
           >
             {{ t('home.login') }}
           </router-link>
@@ -200,14 +182,14 @@
     </header>
 
     <!-- Main Content -->
-    <main class="relative z-10 flex-1 px-6 py-16">
+    <main class="relative z-10 flex-1 px-4 py-12 sm:px-6 md:py-20">
       <div class="mx-auto max-w-6xl">
         <!-- Hero Section - Left/Right Layout -->
-        <div class="mb-12 flex flex-col items-center justify-between gap-12 lg:flex-row lg:gap-16">
+        <div class="mb-14 flex flex-col items-center justify-between gap-10 lg:flex-row lg:gap-16">
           <!-- Left: Text Content -->
-          <div class="flex-1 text-center lg:text-left">
+          <div class="min-w-0 flex-1 text-center lg:text-left">
             <h1
-              class="mb-4 text-4xl font-bold text-gray-900 dark:text-white md:text-5xl lg:text-6xl"
+              class="mb-5 break-words text-4xl font-semibold tracking-tight text-gray-900 dark:text-white md:text-5xl lg:text-6xl"
             >
               {{ siteName }}
             </h1>
@@ -219,7 +201,7 @@
             <div>
               <router-link
                 :to="isAuthenticated ? dashboardPath : '/login'"
-                class="btn btn-primary px-8 py-3 text-base shadow-lg shadow-primary-500/30"
+                class="btn btn-primary px-7 py-3 text-base"
               >
                 {{ isAuthenticated ? t('home.goToDashboard') : t('home.getStarted') }}
                 <Icon name="arrowRight" size="md" class="ml-2" :stroke-width="2" />
@@ -228,7 +210,7 @@
           </div>
 
           <!-- Right: Terminal Animation -->
-          <div class="flex flex-1 justify-center lg:justify-end">
+          <div class="flex w-full min-w-0 flex-1 justify-center lg:justify-end">
             <div class="terminal-container">
               <div class="terminal-window">
                 <!-- Window header -->
@@ -246,14 +228,14 @@
                     <span class="code-prompt">$</span>
                     <span class="code-cmd">curl</span>
                     <span class="code-flag">-X POST</span>
-                    <span class="code-url">/v1/messages</span>
+                    <span class="code-url">/v1/chat/completions</span>
                   </div>
                   <div class="code-line line-2">
-                    <span class="code-comment"># Routing to upstream...</span>
+                    <span class="code-comment"># OpenAI GPT</span>
                   </div>
                   <div class="code-line line-3">
                     <span class="code-success">200 OK</span>
-                    <span class="code-response">{ "content": "Hello!" }</span>
+                    <span class="code-response">{ "object": "chat.completion" }</span>
                   </div>
                   <div class="code-line line-4">
                     <span class="code-prompt">$</span>
@@ -266,58 +248,58 @@
         </div>
 
         <!-- Feature Tags - Centered -->
-        <div class="mb-12 flex flex-wrap items-center justify-center gap-4 md:gap-6">
+        <div class="mb-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 border-y border-gray-200 py-5 dark:border-dark-700">
           <div
-            class="inline-flex items-center gap-2.5 rounded-full border border-gray-200/50 bg-white/80 px-5 py-2.5 shadow-sm backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/80"
+            class="inline-flex items-center gap-2.5"
           >
             <Icon name="swap" size="sm" class="text-primary-500" />
             <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{
-              t('home.tags.subscriptionToApi')
+              t('home.tags.officialGpt')
             }}</span>
           </div>
           <div
-            class="inline-flex items-center gap-2.5 rounded-full border border-gray-200/50 bg-white/80 px-5 py-2.5 shadow-sm backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/80"
+            class="inline-flex items-center gap-2.5"
           >
             <Icon name="shield" size="sm" class="text-primary-500" />
             <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{
-              t('home.tags.stickySession')
+              t('home.tags.studentPricing')
             }}</span>
           </div>
           <div
-            class="inline-flex items-center gap-2.5 rounded-full border border-gray-200/50 bg-white/80 px-5 py-2.5 shadow-sm backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/80"
+            class="inline-flex items-center gap-2.5"
           >
             <Icon name="chart" size="sm" class="text-primary-500" />
             <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{
-              t('home.tags.realtimeBilling')
+              t('home.tags.usageBilling')
             }}</span>
           </div>
         </div>
 
         <!-- Features Grid -->
-        <div class="mb-12 grid gap-6 md:grid-cols-3">
-          <!-- Feature 1: Unified Gateway -->
+        <div class="mb-16 grid gap-8 md:grid-cols-3 md:gap-10">
+          <!-- Official GPT service -->
           <div
-            class="group rounded-2xl border border-gray-200/50 bg-white/60 p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 dark:border-dark-700/50 dark:bg-dark-800/60"
+            class="group border-t border-gray-300 pt-6 dark:border-dark-600"
           >
             <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 transition-transform group-hover:scale-110"
+              class="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-700 dark:bg-primary-800"
             >
               <Icon name="server" size="lg" class="text-white" />
             </div>
             <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('home.features.unifiedGateway') }}
+              {{ t('home.features.officialService') }}
             </h3>
             <p class="text-sm leading-relaxed text-gray-600 dark:text-dark-400">
-              {{ t('home.features.unifiedGatewayDesc') }}
+              {{ t('home.features.officialServiceDesc') }}
             </p>
           </div>
 
-          <!-- Feature 2: Account Pool -->
+          <!-- Student pricing -->
           <div
-            class="group rounded-2xl border border-gray-200/50 bg-white/60 p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 dark:border-dark-700/50 dark:bg-dark-800/60"
+            class="group border-t border-gray-300 pt-6 dark:border-dark-600"
           >
             <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 transition-transform group-hover:scale-110"
+              class="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-700 dark:bg-primary-800"
             >
               <svg
                 class="h-6 w-6 text-white"
@@ -334,19 +316,19 @@
               </svg>
             </div>
             <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('home.features.multiAccount') }}
+              {{ t('home.features.studentPricing') }}
             </h3>
             <p class="text-sm leading-relaxed text-gray-600 dark:text-dark-400">
-              {{ t('home.features.multiAccountDesc') }}
+              {{ t('home.features.studentPricingDesc') }}
             </p>
           </div>
 
-          <!-- Feature 3: Billing & Quota -->
+          <!-- Usage-based billing -->
           <div
-            class="group rounded-2xl border border-gray-200/50 bg-white/60 p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 dark:border-dark-700/50 dark:bg-dark-800/60"
+            class="group border-t border-gray-300 pt-6 dark:border-dark-600"
           >
             <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/30 transition-transform group-hover:scale-110"
+              class="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-700 dark:bg-primary-800"
             >
               <svg
                 class="h-6 w-6 text-white"
@@ -363,10 +345,10 @@
               </svg>
             </div>
             <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('home.features.balanceQuota') }}
+              {{ t('home.features.usageBilling') }}
             </h3>
             <p class="text-sm leading-relaxed text-gray-600 dark:text-dark-400">
-              {{ t('home.features.balanceQuotaDesc') }}
+              {{ t('home.features.usageBillingDesc') }}
             </p>
           </div>
         </div>
@@ -382,21 +364,6 @@
         </div>
 
         <div class="mb-16 flex flex-wrap items-center justify-center gap-4">
-          <!-- Claude - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-500"
-            >
-              <span class="text-xs font-bold text-white">C</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.claude') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
           <!-- GPT - Supported -->
           <div
             class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
@@ -412,51 +379,7 @@
               >{{ t('home.providers.supported') }}</span
             >
           </div>
-          <!-- Gemini - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600"
-            >
-              <span class="text-xs font-bold text-white">G</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.gemini') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
-          <!-- Antigravity - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-600"
-            >
-              <span class="text-xs font-bold text-white">A</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.antigravity') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
-          <!-- More - Coming Soon -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-gray-200/50 bg-white/40 px-5 py-3 opacity-60 backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/40"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-500 to-gray-600"
-            >
-              <span class="text-xs font-bold text-white">+</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.more') }}</span>
-            <span
-              class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-dark-700 dark:text-dark-400"
-              >{{ t('home.providers.soon') }}</span
-            >
-          </div>
+
         </div>
       </div>
     </main>
@@ -469,23 +392,14 @@
         <p class="text-sm text-gray-500 dark:text-dark-400">
           &copy; {{ currentYear }} {{ siteName }}. {{ t('home.footer.allRightsReserved') }}
         </p>
-        <div class="flex items-center gap-4">
+        <div v-if="docUrl" class="flex items-center gap-4">
           <a
-            v-if="docUrl"
             :href="docUrl"
             target="_blank"
             rel="noopener noreferrer"
             class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
           >
             {{ t('home.docs') }}
-          </a>
-          <a
-            :href="githubUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
-          >
-            GitHub
           </a>
         </div>
       </div>
@@ -499,6 +413,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { DEFAULT_SITE_SUBTITLE, resolveDocumentationUrl, resolveSiteName, resolveSiteSubtitle } from '@/utils/siteBranding'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 
@@ -508,10 +423,13 @@ const authStore = useAuthStore()
 const appStore = useAppStore()
 
 // Site settings - directly from appStore (already initialized from injected config)
-const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'Sub2API')
+const siteName = computed(() => resolveSiteName(appStore.cachedPublicSettings?.site_name || appStore.siteName))
 const siteLogo = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
-const siteSubtitle = computed(() => appStore.cachedPublicSettings?.site_subtitle || 'AI API Gateway Platform')
-const docUrl = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.doc_url || appStore.docUrl || ''))
+const siteSubtitle = computed(() => {
+  const subtitle = resolveSiteSubtitle(appStore.cachedPublicSettings?.site_subtitle)
+  return subtitle === DEFAULT_SITE_SUBTITLE ? t('home.heroDescription') : subtitle
+})
+const docUrl = computed(() => resolveDocumentationUrl(appStore.cachedPublicSettings?.doc_url || appStore.docUrl))
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
 const hasHomeContent = computed(() => homeContent.value.trim().length > 0)
 const compactHomeEnabled = computed(() => appStore.cachedPublicSettings?.compact_home_enabled === true)
@@ -526,8 +444,6 @@ const isHomeContentUrl = computed(() => {
 // Theme
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
-// GitHub URL
-const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
 
 // Auth state
 const isAuthenticated = computed(() => authStore.isAuthenticated)
@@ -585,24 +501,26 @@ onMounted(() => {
 .terminal-container {
   position: relative;
   display: inline-block;
+  width: 100%;
+  max-width: 420px;
 }
 
 /* Terminal Window */
 .terminal-window {
-  width: 420px;
-  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
-  border-radius: 14px;
+  width: min(420px, 100%);
+  background: #162c40;
+  border-radius: 12px;
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   overflow: hidden;
-  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
+
   transition: transform 0.3s ease;
 }
 
 .terminal-window:hover {
-  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(-4px);
+  transform: translateY(-2px);
 }
 
 /* Terminal Header */
@@ -610,7 +528,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(30, 41, 59, 0.8);
+  background: #203a50;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -640,7 +558,7 @@ onMounted(() => {
   text-align: center;
   font-size: 12px;
   font-family: ui-monospace, monospace;
-  color: #64748b;
+  color: #aac5dd;
   margin-right: 52px;
 }
 
@@ -696,10 +614,10 @@ onMounted(() => {
   color: #a78bfa;
 }
 .code-url {
-  color: #14b8a6;
+  color: #f5a100;
 }
 .code-comment {
-  color: #64748b;
+  color: #aac5dd;
   font-style: italic;
 }
 .code-success {
@@ -737,8 +655,13 @@ onMounted(() => {
 :deep(.dark) .terminal-window {
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(20, 184, 166, 0.2),
-    0 0 40px rgba(20, 184, 166, 0.1),
+    0 0 0 1px rgba(11, 117, 190, 0.2),
+    0 0 40px rgba(11, 117, 190, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .code-line { opacity: 1; animation: none; }
+  .cursor { animation: none; }
+  .terminal-window { transition: none; }
 }
 </style>

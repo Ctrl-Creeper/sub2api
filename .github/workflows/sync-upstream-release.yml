@@ -1,0 +1,129 @@
+name: Sync upstream release
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Upstream release tag; leave empty for the latest stable release. Also retries a paused sync.'
+        type: string
+        required: false
+      revision:
+        description: 'Fork revision: empty reuses the pending build or starts at 1; next builds a new revision; or specify a positive integer.'
+        type: string
+        required: false
+
+# Serialize the entire merge/build/publication cycle, including manual retries.
+concurrency:
+  group: upstream-release-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_REPOSITORY: Wei-Shaw/sub2api
+
+jobs:
+  sync:
+    if: ${{ github.repository != 'Wei-Shaw/sub2api' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+    outputs:
+      ready: ${{ steps.sync.outputs.ready }}
+      tag: ${{ steps.sync.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Merge upstream release and create a fork tag
+        id: sync
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SYNC_BRANCH: ${{ github.event.repository.default_branch }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+          REQUESTED_REVISION: ${{ inputs.revision }}
+          MANUAL_SYNC: ${{ github.event_name == 'workflow_dispatch' }}
+          SYNC_REPORT: ${{ runner.temp }}/upstream-sync-report.json
+        run: python .github/upstream-sync/sync.py sync
+      - name: Save sync report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: upstream-sync-report
+          path: ${{ runner.temp }}/upstream-sync-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    needs: sync
+    if: ${{ needs.sync.outputs.ready == 'true' }}
+    permissions:
+      contents: write
+      packages: write
+    # GITHUB_TOKEN pushes do not trigger tag workflows. A reusable workflow does.
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.sync.outputs.tag }}
+      simple_release: false
+      dry_run: false
+    secrets: inherit
+
+  finish:
+    needs: [sync, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Record successful publication and close any sync alert
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SYNC_BRANCH: ${{ github.event.repository.default_branch }}
+          REQUESTED_TAG: ${{ needs.sync.outputs.tag }}
+        run: python .github/upstream-sync/sync.py finish
+
+  notify:
+    needs: [sync, publish, finish]
+    if: ${{ always() && (needs.sync.result == 'failure' || needs.publish.result == 'failure' || needs.finish.result == 'failure') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: upstream-sync-report
+          path: ${{ runner.temp }}
+      - name: Notify about conflicts or build/publication failures
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_TAG: ${{ needs.sync.outputs.tag || inputs.tag }}
+          SYNC_RESULTS: 'sync=${{ needs.sync.result }}, publish=${{ needs.publish.result }}, finish=${{ needs.finish.result }}'
+          NOTIFY_USERS: ${{ vars.UPSTREAM_SYNC_NOTIFY_USERS || github.repository_owner }}
+          SYNC_REPORT: ${{ runner.temp }}/upstream-sync-report.json
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python .github/upstream-sync/sync.py notify

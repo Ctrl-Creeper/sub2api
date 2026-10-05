@@ -27,7 +27,7 @@
           <LoadingSpinner size="md" />
         </div>
         <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{{ t('dashboard.modelDistribution') }}</h3>
-        <div class="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+        <div class="flex flex-col items-center gap-4 2xl:flex-row sm:gap-6">
           <div class="h-48 w-48 shrink-0">
             <Doughnut v-if="modelData" :data="modelData" :options="doughnutOptions" />
             <div v-else class="flex h-full items-center justify-center text-sm text-gray-500 dark:text-gray-400">{{ t('dashboard.noDataAvailable') }}</div>
@@ -84,7 +84,7 @@ const modelData = computed(() => !props.models?.length ? null : {
   labels: props.models.map((m: ModelStat) => m.model),
   datasets: [{
     data: props.models.map((m: ModelStat) => m.total_tokens),
-    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+    backgroundColor: ['#e8340c', '#0b75be', '#81b934', '#f5a100', '#9a68ab', '#62a8d9', '#d07a54', '#648f2d']
   }]
 })
 

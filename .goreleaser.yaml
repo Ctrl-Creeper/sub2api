@@ -173,8 +173,9 @@ release:
     owner: "{{ .Env.GITHUB_REPO_OWNER }}"
     name: "{{ .Env.GITHUB_REPO_NAME }}"
   draft: false
-  prerelease: auto
-  name_template: "Sub2API {{.Version}}"
+  # Numeric fork revisions are stable; upstream rc/beta tags remain prereleases.
+  prerelease: '{{ if (filter .Version "^[0-9]+[.][0-9]+[.][0-9]+-[1-9][0-9]*$") }}false{{ else }}auto{{ end }}'
+  name_template: "v{{.Version}} · BNDS AI普及计划"
   # 完全使用 tag 消息作为 release 内容（通过环境变量传入）
   header: |
     > AI API Gateway Platform - 将 AI 订阅配额分发和管理

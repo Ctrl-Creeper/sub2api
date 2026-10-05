@@ -31,14 +31,86 @@ type updateServiceGitHubClientStub struct {
 	release        *GitHubRelease
 	recentReleases []*GitHubRelease
 	recentErr      error
+	latestRepo     string
+	recentRepo     string
 }
 
-func (s *updateServiceGitHubClientStub) FetchLatestRelease(context.Context, string) (*GitHubRelease, error) {
+func (s *updateServiceGitHubClientStub) FetchLatestRelease(_ context.Context, repo string) (*GitHubRelease, error) {
+	s.latestRepo = repo
 	return s.release, nil
 }
 
-func (s *updateServiceGitHubClientStub) FetchRecentReleases(context.Context, string, int) ([]*GitHubRelease, error) {
+func (s *updateServiceGitHubClientStub) FetchRecentReleases(_ context.Context, repo string, _ int) ([]*GitHubRelease, error) {
+	s.recentRepo = repo
 	return s.recentReleases, s.recentErr
+}
+
+func TestUpdateServiceUsesForkForUpdateAndRollback(t *testing.T) {
+	client := &updateServiceGitHubClientStub{
+		release: &GitHubRelease{
+			TagName: "v0.2.14",
+			HTMLURL: "https://github.com/Ctrl-Creeper/sub2api/releases/tag/v0.2.14",
+		},
+	}
+	svc := NewUpdateService(&updateServiceCacheStub{}, client, "0.2.13", "release")
+	info, err := svc.CheckUpdate(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, "Ctrl-Creeper/sub2api", client.latestRepo)
+	require.True(t, info.HasUpdate)
+	require.Equal(t, client.release.HTMLURL, info.ReleaseInfo.HTMLURL)
+	_, err = svc.ListRollbackVersions(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "Ctrl-Creeper/sub2api", client.recentRepo)
+}
+
+func TestUpdateServiceComparesForkRevisions(t *testing.T) {
+	for _, tc := range []struct {
+		current, latest string
+		want            int
+	}{
+		{"0.2.13-1", "0.2.13-2", -1},
+		{"v0.2.13-2", "v0.2.13-10", -1},
+		{"0.2.13-10", "0.2.13-2", 1},
+		{"0.2.13-99", "0.2.14-1", -1},
+		{"0.2.13", "0.2.13-1", -1},
+		{"v0.2.13-1", "0.2.13-1", 0},
+		{"0.2.13-rc1-2", "0.2.13-rc1-10", -1},
+		{"0.2.13-rc1-10", "0.2.13-1", -1},
+	} {
+		t.Run(tc.current+"_to_"+tc.latest, func(t *testing.T) {
+			require.Equal(t, tc.want, compareVersions(tc.current, tc.latest))
+		})
+	}
+}
+
+func TestUpdateServiceDetectsRevisionUpdateIncludingCachedResult(t *testing.T) {
+	cache := &updateServiceCacheStub{}
+	client := &updateServiceGitHubClientStub{release: &GitHubRelease{TagName: "v0.2.13-2"}}
+	svc := NewUpdateService(cache, client, "0.2.13-1", "release")
+	for _, force := range []bool{true, false} {
+		info, err := svc.CheckUpdate(context.Background(), force)
+		require.NoError(t, err)
+		require.True(t, info.HasUpdate)
+		require.Equal(t, "0.2.13-2", info.LatestVersion)
+		require.Equal(t, !force, info.Cached)
+	}
+}
+
+func TestUpdateServiceRollbackIncludesPreviousForkRevisions(t *testing.T) {
+	svc := newRollbackTestService("0.2.13-11", []*GitHubRelease{
+		{TagName: "v0.2.13-2"},
+		{TagName: "v0.2.14-1"},
+		{TagName: "v0.2.13-10"},
+		{TagName: "v0.2.13-11"},
+		{TagName: "v0.2.13-rc1-1", Prerelease: true},
+		{TagName: "v0.2.12-99"},
+	})
+	versions, err := svc.ListRollbackVersions(context.Background())
+	require.NoError(t, err)
+	require.Len(t, versions, 3)
+	require.Equal(t, "0.2.13-10", versions[0].Version)
+	require.Equal(t, "0.2.13-2", versions[1].Version)
+	require.Equal(t, "0.2.12-99", versions[2].Version)
 }
 
 func (s *updateServiceGitHubClientStub) DownloadFile(context.Context, string, string, int64) error {

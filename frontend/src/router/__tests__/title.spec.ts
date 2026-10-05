@@ -21,8 +21,10 @@ describe('resolveDocumentTitle', () => {
   })
 
   it('站点名为空时，回退默认站点名', () => {
-    expect(resolveDocumentTitle('Dashboard', '')).toBe('Dashboard - Sub2API')
-    expect(resolveDocumentTitle(undefined, '   ')).toBe('Sub2API')
+    expect(resolveDocumentTitle('Dashboard', '')).toBe('Dashboard - BNDS AI普及计划')
+    expect(resolveDocumentTitle(undefined, '   ')).toBe('BNDS AI普及计划')
+    expect(resolveDocumentTitle('Dashboard', 'Sub2API')).toBe('Dashboard - BNDS AI普及计划')
+    expect(resolveDocumentTitle('Dashboard', 'Relay')).toBe('Dashboard - BNDS AI普及计划')
   })
 
   it('站点名变更时仅影响后续路由标题计算', () => {

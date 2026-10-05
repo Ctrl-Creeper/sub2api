@@ -8,7 +8,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const updateCacheKey = "update:latest"
+// Keep upstream release metadata from being reused after migrating to this fork.
+const updateCacheKey = "update:latest:" + service.UpdateRepository
 
 type updateCache struct {
 	rdb *redis.Client

@@ -1,3 +1,5 @@
+import { useAppStore } from '@/stores/app'
+import { resolveSiteName } from '@/utils/siteBranding'
 import { onMounted, onUnmounted, nextTick } from 'vue'
 import { driver, type Driver, type DriveStep } from 'driver.js'
 import 'driver.js/dist/driver.css'
@@ -13,6 +15,7 @@ export interface OnboardingOptions {
 
 export function useOnboardingTour(options: OnboardingOptions) {
   const { t } = useI18n()
+  const appStore = useAppStore()
   const userStore = useUserStore()
   const onboardingStore = useOnboardingStore()
   const storageVersion = 'v4_interactive' // Bump version for new tour type
@@ -95,7 +98,8 @@ export function useOnboardingTour(options: OnboardingOptions) {
     // 动态获取当前用户角色和步骤
     const isAdmin = userStore.user?.role === 'admin'
     const isSimpleMode = userStore.isSimpleMode
-    const steps = isAdmin ? getAdminSteps(t, isSimpleMode) : getUserSteps(t)
+    const brandedText = (key: string) => t(key).replace(/Sub2API|BNDS AI普及计划/g, resolveSiteName(appStore.siteName))
+    const steps = isAdmin ? getAdminSteps(brandedText, isSimpleMode) : getUserSteps(brandedText)
 
     // 确保 DOM 就绪
     await nextTick()

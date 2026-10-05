@@ -6,6 +6,13 @@ registries=("ghcr.io/${owner,,}/sub2api")
 if [[ ${SIMPLE_RELEASE:-false} != true && ${DOCKERHUB_USERNAME:-skip} != skip ]]; then
   registries+=("${DOCKERHUB_USERNAME}/sub2api")
 fi
+# Numeric fork revisions are stable; upstream rc/beta releases keep isolated tags.
+if [[ ! $RELEASE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?-[1-9][0-9]*$ ]]; then
+  echo "Invalid fork version: expected upstream-version-revision" >&2
+  exit 1
+fi
+stable=false
+if [[ $RELEASE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+-[1-9][0-9]*$ ]]; then stable=true; fi
 arches=(amd64 arm64)
 if [[ ${SIMPLE_RELEASE:-false} == true ]]; then arches=(amd64); fi
 for arch in "${arches[@]}"; do
@@ -16,7 +23,8 @@ for arch in "${arches[@]}"; do
   for registry in "${registries[@]}"; do
     args+=(--tag "$registry:$RELEASE_VERSION-$arch")
     if [[ ${SIMPLE_RELEASE:-false} == true ]]; then
-      args+=(--tag "$registry:$RELEASE_VERSION" --tag "$registry:latest")
+      args+=(--tag "$registry:$RELEASE_VERSION")
+      if [[ $stable == true ]]; then args+=(--tag "$registry:latest"); fi
     fi
   done
   if [[ ${DRY_RUN:-false} == true ]]; then
@@ -30,9 +38,11 @@ if [[ ${DRY_RUN:-false} != true && ${SIMPLE_RELEASE:-false} != true ]]; then
   major=${RELEASE_VERSION%%.*}
   minor=${RELEASE_VERSION#*.}; minor=${minor%%.*}
   for registry in "${registries[@]}"; do
-    docker buildx imagetools create \
-      --tag "$registry:$RELEASE_VERSION" --tag "$registry:latest" \
-      --tag "$registry:$major.$minor" --tag "$registry:$major" \
+    tags=(--tag "$registry:$RELEASE_VERSION")
+    if [[ $stable == true ]]; then
+      tags+=(--tag "$registry:latest" --tag "$registry:$major.$minor" --tag "$registry:$major")
+    fi
+    docker buildx imagetools create "${tags[@]}" \
       "$registry:$RELEASE_VERSION-amd64" "$registry:$RELEASE_VERSION-arm64"
   done
 fi

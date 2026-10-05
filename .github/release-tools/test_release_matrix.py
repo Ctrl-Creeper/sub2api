@@ -30,13 +30,13 @@ class ReleaseMatrixTest(unittest.TestCase):
         for name in ('.goreleaser.yaml', '.goreleaser.simple.yaml'):
             shutil.copyfile(ROOT / name, name)
         Path('backend/cmd/server').mkdir(parents=True)
-        release.VERSION_FILE.write_text('9.8.7\n')
+        release.VERSION_FILE.write_text('9.8.7-1\n')
 
     def fixture_artifacts(self, simple=False):
         directory = Path('release-input')
         directory.mkdir()
         for target in release.targets(simple):
-            name = release.archive_name('9.8.7', target)
+            name = release.archive_name('9.8.7-1', target)
             archive = directory / name
             if target['goos'] == 'linux':
                 with tarfile.open(archive, 'w:gz') as out:
@@ -46,10 +46,10 @@ class ReleaseMatrixTest(unittest.TestCase):
                     out.addfile(info, io.BytesIO(b'fixture'))
             else:
                 archive.write_bytes(b'fixture archive')
-            metadata = {'version': '9.8.7', 'sha': 'a' * 40, 'target': target,
+            metadata = {'version': '9.8.7-1', 'sha': 'a' * 40, 'target': target,
                         'archive': name, 'sha256': release.sha256(archive)}
             (directory / f"manifest-{target['goos']}-{target['goarch']}.json").write_text(json.dumps(metadata))
-        return argparse.Namespace(input='release-input', version='9.8.7', sha='a' * 40, simple=simple, output='contexts')
+        return argparse.Namespace(input='release-input', version='9.8.7-1', sha='a' * 40, simple=simple, output='contexts')
 
     def test_full_and_simple_matrix_match_existing_targets(self):
         full = release.targets()
@@ -124,9 +124,9 @@ class ReleaseMatrixTest(unittest.TestCase):
     def test_plan_requires_a_tag_for_publication(self):
         args = argparse.Namespace(ref='main', dry_run=False, simple=False)
         with patch.object(subprocess, 'check_output', return_value='a' * 40 + '\n'):
-            with self.assertRaisesRegex(ValueError, 'version tag'):
+            with self.assertRaisesRegex(ValueError, 'fork version tag'):
                 release.plan(args)
-        args.ref = 'v9.8.7'
+        args.ref = 'v9.8.7-1'
         with patch.object(subprocess, 'check_output', side_effect=['a' * 40 + '\n', 'b' * 40 + '\n']):
             with self.assertRaisesRegex(ValueError, 'does not match'):
                 release.plan(args)
@@ -139,6 +139,61 @@ class ReleaseMatrixTest(unittest.TestCase):
         self.assertEqual(output['owner_lower'], 'exampleowner')
         self.assertEqual(len(json.loads(output['matrix'])['include']), 5)
 
+    def test_upstream_tags_and_invalid_revisions_cannot_be_published(self):
+        for tag in ('v9.8.7', 'v9.8.7-0', 'v9.8.7-01', 'v9.8.7-rc1'):
+            with self.subTest(tag=tag), patch.object(subprocess, 'check_output', return_value='a' * 40):
+                with self.assertRaisesRegex(ValueError, 'fork version tag'):
+                    release.plan(argparse.Namespace(ref=tag, dry_run=False, simple=False))
+
+    def test_source_build_uses_fork_tags_and_numeric_revision_order(self):
+        scripts = Path('backend/scripts')
+        scripts.mkdir()
+        shutil.copyfile(ROOT / 'backend/scripts/resolve-version.sh', scripts / 'resolve-version.sh')
+        subprocess.run(['git', 'init', '-q'], check=True)
+        subprocess.run(['git', 'config', 'user.name', 'Test'], check=True)
+        subprocess.run(['git', 'config', 'user.email', 'test@example.com'], check=True)
+        subprocess.run(['git', 'add', '.'], check=True)
+        subprocess.run(['git', 'commit', '-qm', 'fixture'], check=True)
+
+        def resolved():
+            return subprocess.check_output(['sh', str(scripts / 'resolve-version.sh')], text=True).strip()
+
+        self.assertEqual(resolved(), '9.8.7-1')
+        subprocess.run(['git', 'tag', 'v9.8.7'], check=True)
+        self.assertEqual(resolved(), '9.8.7-1')
+        for tag in ('v9.8.7-2', 'v9.8.7-10'):
+            subprocess.run(['git', 'tag', tag], check=True)
+        self.assertEqual(resolved(), '9.8.7-10')
+
+    def test_numeric_revision_is_stable_but_upstream_rc_is_prerelease(self):
+        for version, prerelease in [('9.8.7-1', False), ('9.8.7-10', False), ('9.8.7-rc1-2', True)]:
+            for simple in (False, True):
+                with self.subTest(version=version, simple=simple), patch.dict(os.environ, {'RELEASE_VERSION': version}):
+                    release.generate_config(argparse.Namespace(mode='publish', simple=simple, output='publisher.yaml'))
+                    data = yaml.safe_load(Path('publisher.yaml').read_text())
+                    self.assertEqual(data['release']['prerelease'], prerelease)
+                    self.assertIn('BNDS AI普及计划', data['release']['name_template'])
+                    self.assertTrue(data['release']['name_template'].startswith('v{{.Version}}'))
+                    self.assertIn(version, release.archive_name(version, release.targets()[0]))
+
+    def test_pat_tag_push_does_not_duplicate_managed_release(self):
+        state = Path('.github/upstream-sync/state.json')
+        state.parent.mkdir(parents=True)
+        state.write_text(json.dumps({'tag': 'v9.8.7-1'}))
+        with patch.dict(os.environ, {'GITHUB_OUTPUT': 'outputs'}), patch.object(subprocess, 'check_output') as git:
+            release.plan(argparse.Namespace(ref='v9.8.7-1', event='push', dry_run=False, simple=False))
+        git.assert_not_called()
+        self.assertEqual(Path('outputs').read_text(), 'skip=true\n')
+
+    def test_managed_tag_remains_available_for_explicit_manual_release(self):
+        state = Path('.github/upstream-sync/state.json')
+        state.parent.mkdir(parents=True)
+        state.write_text(json.dumps({'tag': 'v9.8.7-1'}))
+        with patch.dict(os.environ, {'GITHUB_OUTPUT': 'outputs'}), patch.object(subprocess, 'check_output', return_value='a' * 40 + '\n'):
+            release.plan(argparse.Namespace(ref='v9.8.7-1', event='workflow_dispatch', dry_run=False, simple=False))
+        self.assertIn('tag=v9.8.7-1\n', Path('outputs').read_text())
+        self.assertNotIn('skip=true', Path('outputs').read_text())
+
     def test_docker_commands_do_not_publish_during_dry_run(self):
         fake_bin = Path('bin')
         fake_bin.mkdir()
@@ -147,7 +202,7 @@ class ReleaseMatrixTest(unittest.TestCase):
         docker.chmod(0o755)
         env = {**os.environ, 'PATH': str(fake_bin.resolve()) + os.pathsep + os.environ['PATH'],
                'DOCKER_LOG': str(Path('docker.log').resolve()), 'RUNNER_TEMP': self.temp.name,
-               'RELEASE_VERSION': '9.8.7', 'RELEASE_SHA': 'a' * 40, 'GITHUB_REPOSITORY': 'ExampleOwner/sub2api',
+               'RELEASE_VERSION': '9.8.7-1', 'RELEASE_SHA': 'a' * 40, 'GITHUB_REPOSITORY': 'ExampleOwner/sub2api',
                'DRY_RUN': 'true', 'SIMPLE_RELEASE': 'false', 'DOCKERHUB_USERNAME': 'skip'}
         subprocess.run(['bash', str(ROOT / '.github/release-tools/release-images.sh')], env=env, check=True)
         log = Path('docker.log').read_text()
@@ -170,7 +225,7 @@ class ReleaseMatrixTest(unittest.TestCase):
                 log_path = Path(f'docker-{simple}.log').resolve()
                 env = {**os.environ, 'PATH': str(fake_bin.resolve()) + os.pathsep + os.environ['PATH'],
                        'DOCKER_LOG': str(log_path), 'RUNNER_TEMP': self.temp.name,
-                       'RELEASE_VERSION': '9.8.7', 'RELEASE_SHA': 'a' * 40, 'GITHUB_REPOSITORY': 'ExampleOwner/sub2api',
+                       'RELEASE_VERSION': '9.8.7-1', 'RELEASE_SHA': 'a' * 40, 'GITHUB_REPOSITORY': 'ExampleOwner/sub2api',
                        'DRY_RUN': 'false', 'SIMPLE_RELEASE': str(simple).lower(), 'DOCKERHUB_USERNAME': 'fixturehub'}
                 subprocess.run(['bash', str(ROOT / '.github/release-tools/release-images.sh')], env=env, check=True)
                 log = log_path.read_text()
@@ -184,6 +239,25 @@ class ReleaseMatrixTest(unittest.TestCase):
                     self.assertEqual(log.count('imagetools create'), 2)
                     self.assertIn('fixturehub/sub2api:9.8', log)
                     self.assertIn('ghcr.io/exampleowner/sub2api:9', log)
+
+    def test_upstream_prerelease_images_do_not_replace_latest(self):
+        fake_bin = Path('bin')
+        fake_bin.mkdir()
+        docker = fake_bin / 'docker'
+        docker.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$DOCKER_LOG"\n')
+        docker.chmod(0o755)
+        for simple in (False, True):
+            log_path = Path(f'rc-{simple}.log').resolve()
+            env = {**os.environ, 'PATH': str(fake_bin.resolve()) + os.pathsep + os.environ['PATH'],
+                   'DOCKER_LOG': str(log_path), 'RUNNER_TEMP': self.temp.name,
+                   'RELEASE_VERSION': '9.8.7-rc1-1', 'RELEASE_SHA': 'a' * 40,
+                   'GITHUB_REPOSITORY': 'ExampleOwner/sub2api', 'DOCKERHUB_USERNAME': 'skip',
+                   'DRY_RUN': 'false', 'SIMPLE_RELEASE': str(simple).lower()}
+            subprocess.run(['bash', str(ROOT / '.github/release-tools/release-images.sh')], env=env, check=True)
+            log = log_path.read_text()
+            self.assertIn('ghcr.io/exampleowner/sub2api:9.8.7-rc1-1', log)
+            self.assertNotIn(':latest', log)
+            self.assertNotIn('--tag ghcr.io/exampleowner/sub2api:9.8 ', log)
 
 
 

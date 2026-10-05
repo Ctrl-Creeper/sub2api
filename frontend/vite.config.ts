@@ -28,7 +28,7 @@ function isSafeImageUrl(value: string): boolean {
 
 function injectBranding(html: string, config: { site_name?: string; site_logo?: string }): string {
   let brandedHtml = html
-  const siteName = config.site_name?.trim()
+  const siteName = config.site_name?.trim().replace(/^(sub2api|relay)$/i, 'BNDS AI普及计划')
   if (siteName) {
     brandedHtml = brandedHtml.replace(
       /<title>[^<]*<\/title>/i,

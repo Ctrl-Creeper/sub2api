@@ -5,51 +5,64 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 主色调 - Teal/Cyan 青色系
+        // Sampled from the Beijing National Day School official color logo.
+        brand: { red: '#e8340c', yellow: '#f5a100', green: '#81b934', blue: '#0b75be' },
         primary: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6',
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-          950: '#042f2e'
+          50: '#fff5f1',
+          100: '#ffe6da',
+          200: '#ffc9b4',
+          300: '#ffa285',
+          400: '#fb7550',
+          500: '#e8340c',
+          600: '#cf2e0b',
+          700: '#ab280f',
+          800: '#8b2513',
+          900: '#732416',
+          950: '#3f1008'
         },
-        // 辅助色 - 深蓝灰
+        gray: {
+          50: '#f8f9fb',
+          100: '#f0f2f5',
+          200: '#dfe4ea',
+          300: '#c4cdd7',
+          400: '#96a3b1',
+          500: '#657589',
+          600: '#4c5d72',
+          700: '#394a60',
+          800: '#27394d',
+          900: '#192b3f',
+          950: '#0f1b2a'
+        },
         accent: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617'
+          50: '#fffaf0',
+          100: '#fff0cc',
+          200: '#ffe199',
+          300: '#ffd066',
+          400: '#ffc038',
+          500: '#f5a100',
+          600: '#c67b00',
+          700: '#9d5e05',
+          800: '#804a0c',
+          900: '#693e10',
+          950: '#3d2107'
         },
-        // 深色模式背景
         dark: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617'
+          50: '#f3f7fc',
+          100: '#e5eef7',
+          200: '#cbdcec',
+          300: '#aac5dd',
+          400: '#82a6c7',
+          500: '#5d84a7',
+          600: '#406583',
+          700: '#2e4c65',
+          800: '#203a50',
+          900: '#162c40',
+          950: '#0c1c2b'
         }
       },
       fontFamily: {
         sans: [
+          'Inter',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
@@ -67,20 +80,20 @@ export default {
       boxShadow: {
         glass: '0 8px 32px rgba(0, 0, 0, 0.08)',
         'glass-sm': '0 4px 16px rgba(0, 0, 0, 0.06)',
-        glow: '0 0 20px rgba(20, 184, 166, 0.25)',
-        'glow-lg': '0 0 40px rgba(20, 184, 166, 0.35)',
-        card: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
+        glow: '0 0 20px rgba(232, 52, 12, 0.25)',
+        'glow-lg': '0 0 40px rgba(232, 52, 12, 0.35)',
+        card: '0 2px 5px rgba(25, 43, 63, 0.025)',
         'card-hover': '0 10px 40px rgba(0, 0, 0, 0.08)',
         'inner-glow': 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-        'gradient-dark': 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        'gradient-primary': 'linear-gradient(135deg, #e8340c 0%, #cf2e0b 100%)',
+        'gradient-dark': 'linear-gradient(135deg, #203a50 0%, #162c40 100%)',
         'gradient-glass':
           'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
         'mesh-gradient':
-          'radial-gradient(at 40% 20%, rgba(20, 184, 166, 0.12) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(20, 184, 166, 0.08) 0px, transparent 50%)'
+          'radial-gradient(at 40% 20%, rgba(232, 52, 12, 0.12) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(11, 117, 190, 0.08) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(232, 52, 12, 0.08) 0px, transparent 50%)'
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
@@ -118,8 +131,8 @@ export default {
           '100%': { backgroundPosition: '200% 0' }
         },
         glow: {
-          '0%': { boxShadow: '0 0 20px rgba(20, 184, 166, 0.25)' },
-          '100%': { boxShadow: '0 0 30px rgba(20, 184, 166, 0.4)' }
+          '0%': { boxShadow: '0 0 20px rgba(232, 52, 12, 0.25)' },
+          '100%': { boxShadow: '0 0 30px rgba(232, 52, 12, 0.4)' }
         }
       },
       backdropBlur: {

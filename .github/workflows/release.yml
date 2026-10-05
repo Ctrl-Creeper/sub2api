@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (or a branch/ref for dry run)'
+        description: 'Fork tag, e.g. v0.2.13-1 (or a branch/ref for dry run)'
         required: true
         type: string
       simple_release:
@@ -20,6 +20,17 @@ on:
         required: false
         type: boolean
         default: false
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      simple_release:
+        type: boolean
+        default: false
+      dry_run:
+        type: boolean
+        default: false
 
 concurrency:
   group: release-${{ github.repository }}
@@ -30,7 +41,7 @@ permissions:
 
 env:
   SIMPLE_RELEASE: ${{ inputs.simple_release == true || vars.SIMPLE_RELEASE == 'true' }}
-  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true }}
+  DRY_RUN: ${{ inputs.dry_run == true }}
 
 jobs:
   prepare:
@@ -44,6 +55,7 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
       simple: ${{ steps.plan.outputs.simple }}
       dry_run: ${{ steps.plan.outputs.dry_run }}
+      skip: ${{ steps.plan.outputs.skip }}
     steps:
       - name: Checkout workflow tooling
         uses: actions/checkout@v6
@@ -64,17 +76,20 @@ jobs:
         id: plan
         env:
           REQUESTED_REF: ${{ inputs.tag || github.ref_name }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
         run: |
-          args=(--ref "$REQUESTED_REF")
+          args=(--ref "$REQUESTED_REF" --event "$RELEASE_EVENT_NAME")
           if [[ "$SIMPLE_RELEASE" == true ]]; then args+=(--simple); fi
           if [[ "$DRY_RUN" == true ]]; then args+=(--dry-run); fi
           python "$RUNNER_TEMP/release-tools/release_matrix.py" plan "${args[@]}"
       - uses: actions/upload-artifact@v7
+        if: ${{ steps.plan.outputs.skip != 'true' }}
         with:
           name: release-tooling
           path: ${{ runner.temp }}/release-tools/
           retention-days: 1
       - uses: actions/upload-artifact@v7
+        if: ${{ steps.plan.outputs.skip != 'true' }}
         with:
           name: version-file
           path: backend/cmd/server/VERSION
@@ -82,6 +97,7 @@ jobs:
 
   build-frontend:
     needs: prepare
+    if: ${{ needs.prepare.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -107,6 +123,7 @@ jobs:
 
   build-binaries:
     needs: [prepare, build-frontend]
+    if: ${{ needs.prepare.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

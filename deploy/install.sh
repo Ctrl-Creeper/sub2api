@@ -2,7 +2,7 @@
 #
 # Sub2API Installation Script
 # Sub2API 安装脚本
-# Usage: curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/Ctrl-Creeper/sub2api/main/deploy/install.sh | bash
 #
 
 set -e
@@ -31,7 +31,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-GITHUB_REPO="Wei-Shaw/sub2api"
+GITHUB_REPO="Ctrl-Creeper/sub2api"
 INSTALL_DIR="/opt/sub2api"
 SERVICE_NAME="sub2api"
 SERVICE_USER="sub2api"
@@ -151,7 +151,7 @@ declare -A MSG_ZH=(
     ["cmd_uninstall"]="卸载 Sub2API"
     ["cmd_install_version"]="安装/回退到指定版本"
     ["cmd_list_versions"]="列出可用版本"
-    ["opt_version"]="指定要安装的版本号 (例如: v1.0.0)"
+    ["opt_version"]="指定要安装的版本号 (例如: v0.2.13-1)"
 
     # Server configuration
     ["server_config_title"]="服务器配置"
@@ -276,7 +276,7 @@ declare -A MSG_EN=(
     ["cmd_uninstall"]="Remove Sub2API"
     ["cmd_install_version"]="Install/rollback to a specific version"
     ["cmd_list_versions"]="List available versions"
-    ["opt_version"]="Specify version to install (e.g., v1.0.0)"
+    ["opt_version"]="Specify version to install (e.g., v0.2.13-1)"
 
     # Server configuration
     ["server_config_title"]="Server Configuration"
@@ -718,7 +718,7 @@ install_service() {
     cat > /etc/systemd/system/sub2api.service << EOF
 [Unit]
 Description=Sub2API - AI API Gateway Platform
-Documentation=https://github.com/Wei-Shaw/sub2api
+Documentation=https://github.com/Ctrl-Creeper/sub2api
 After=network.target postgresql.service redis.service
 Wants=postgresql.service redis.service
 

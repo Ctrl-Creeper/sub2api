@@ -64,8 +64,9 @@ release:
     owner: "{{ .Env.GITHUB_REPO_OWNER }}"
     name: "{{ .Env.GITHUB_REPO_NAME }}"
   draft: false
-  prerelease: auto
-  name_template: "Sub2API {{.Version}} (Simple)"
+  # Numeric fork revisions are stable; upstream rc/beta tags remain prereleases.
+  prerelease: '{{ if (filter .Version "^[0-9]+[.][0-9]+[.][0-9]+-[1-9][0-9]*$") }}false{{ else }}auto{{ end }}'
+  name_template: "v{{.Version}} · BNDS AI普及计划 (Simple)"
   # 跳过上传二进制包
   skip_upload: true
   header: |

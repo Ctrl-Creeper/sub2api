@@ -17,7 +17,8 @@ import yaml
 FULL_CONFIG = Path('.goreleaser.yaml')
 SIMPLE_CONFIG = Path('.goreleaser.simple.yaml')
 VERSION_FILE = Path('backend/cmd/server/VERSION')
-VERSION_RE = re.compile(r'\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?')
+VERSION_RE = re.compile(r'\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?-[1-9]\d*')
+STABLE_VERSION_RE = re.compile(r'\d+\.\d+\.\d+-[1-9]\d*')
 
 
 def config(simple=False):
@@ -51,6 +52,15 @@ def sha256(path):
 
 
 def plan(args):
+    # A PAT can trigger the tag-push workflow as well as our reusable call.
+    # Only the sync caller publishes managed tags; explicit manual runs still work.
+    sync_state = Path('.github/upstream-sync/state.json')
+    if (getattr(args, 'event', '') == 'push' and not args.dry_run and sync_state.exists()
+            and json.loads(sync_state.read_text()).get('tag') == args.ref):
+        with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+            output.write('skip=true\n')
+        print('Managed upstream tag: publication is handled by Sync upstream release')
+        return
     sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     if args.dry_run:
         version = VERSION_FILE.read_text().strip()
@@ -59,12 +69,12 @@ def plan(args):
         tag = args.ref
         version = tag.removeprefix('v')
         if not tag.startswith('v') or not VERSION_RE.fullmatch(version):
-            raise ValueError('publishing requires a v-prefixed release version tag')
+            raise ValueError('publishing requires a fork version tag such as v0.2.13-1')
         tagged_sha = subprocess.check_output(['git', 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'], text=True).strip()
         if sha != tagged_sha:
             raise ValueError('checkout does not match the selected release tag')
     if not VERSION_RE.fullmatch(version):
-        raise ValueError('invalid VERSION')
+        raise ValueError('invalid VERSION: expected upstream version followed by a positive revision')
     VERSION_FILE.write_text(version + '\n')
     result = {'sha': sha, 'tag': tag, 'version': version,
               'owner_lower': os.environ.get('GITHUB_REPOSITORY_OWNER', '').lower(),
@@ -90,6 +100,11 @@ def generate_config(args):
             build['ldflags'] = [re.sub(r'{{\s*\.Date\s*}}', '{{ .Env.RELEASE_DATE }}', flag)
                                 for flag in build.get('ldflags', [])]
     else:
+        version = os.environ.get('RELEASE_VERSION', VERSION_FILE.read_text().strip())
+        if not VERSION_RE.fullmatch(version):
+            raise ValueError('invalid fork release version')
+        # Numeric fork revisions are stable despite SemVer treating -1 as prerelease.
+        data['release']['prerelease'] = not bool(STABLE_VERSION_RE.fullmatch(version))
         # Artifacts are supplied through the OSS extra_files mechanism. No build
         # is repeated on the publishing runner, and release templates stay intact.
         data['before'] = {'hooks': []}
@@ -159,6 +174,7 @@ def main():
     commands = parser.add_subparsers(dest='command', required=True)
     p = commands.add_parser('plan')
     p.add_argument('--ref', required=True)
+    p.add_argument('--event', default='')
     p.add_argument('--simple', action='store_true')
     p.add_argument('--dry-run', action='store_true')
     p.set_defaults(run=plan)
