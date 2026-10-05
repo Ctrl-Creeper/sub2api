@@ -45,8 +45,9 @@ onMounted(() => {
 
 <style scoped>
 .auth-layout {
-  @apply flex min-h-screen items-center justify-center bg-gray-50 dark:bg-dark-950;
+  @apply flex min-h-screen items-center justify-center dark:bg-dark-950;
   padding: 48px 24px;
+  background: var(--bnds-canvas);
 }
 
 .auth-frame {
@@ -92,7 +93,7 @@ onMounted(() => {
   height: 4px;
   width: 100%;
   margin-top: 24px;
-  background: linear-gradient(to right, #e8340c 25%, #f5a100 25% 50%, #81b934 50% 75%, #0b75be 75%);
+  background: var(--bnds-color-rule);
 }
 
 .auth-form-panel {

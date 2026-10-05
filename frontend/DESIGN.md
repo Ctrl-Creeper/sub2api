@@ -151,3 +151,59 @@ Validation: 199 existing auth/home/navigation/dashboard/router tests, the build'
 caught the dark border override; the affected scoped selectors were corrected and
 the production bundle rebuilt. No remaining deviations from the written brief
 other than using code-native design instead of an unavailable generated concept.
+
+## School website reference revision — current implementation brief
+
+This supersedes the editorial home and inset navy navigation above. Reference:
+https://www.bnds.cn/, inspected in the built-in browser at 1440×1000: white
+horizontal masthead with a four-color top rule; broad feature area; spacious
+content columns with short colored heading underlines and thin list dividers.
+The actual school site is photo-led and uses full-screen slides. This app adapts
+its masthead, hierarchy and section rules to service content; school photos,
+announcements and slide navigation are not copied. Image Gen remains unavailable;
+the official site and this written adaptation are the visual reference.
+
+Tokens: existing four school-logo colors, white surface, light blue #f2f7fb
+feature/canvas background, navy #162c40 text; dark mode uses existing dark tokens.
+System sans, 46px/32px home title, 22px GPT section heading, 20px feature heading,
+14–17px body, 4px panel/control corners, no heavy shadows. GPT is a small service
+heading and never a hero-sized word. Keep current content, configured overrides,
+CTA destinations and conditional navigation. Home uses a broad pale feature band,
+two balanced text/service columns, then three open service columns with colored
+underlines. Mobile stacks columns, with full-width readable API example.
+
+Workspace uses a flush white navigation rail (dark surface in dark mode), pale
+blue selected item with a blue left rule, white page masthead with the same
+four-color rule, a short blue underline below the page title, and pale blue canvas.
+Desktop main starts at 256px/72px collapsed; mobile retains the existing drawer.
+Statistics keep existing values/layout with fine colored rules. Authentication
+keeps the centered form, sharing the canvas, four-color masthead and square corners.
+
+### School reference review ledger
+
+Verified the final production bundle with the built-in Paseo browser. Inspected
+both the official website reference and latest rendered home/dashboard PNGs with
+view_image; the design follows the adaptation brief above. Compared:
+
+- Masthead: white horizontal header, four-color rule, original book mark and
+  conditional controls; workspace rail and header use the same surface/rule.
+- Hierarchy: GPT computes to 22px on desktop and mobile, home brand is 46px/32px;
+  workspace headings are 24px with a short blue underline.
+- Palette: home and workspace light canvas both compute to rgb(242,247,251).
+  Selected workspace navigation is rgb(234,243,250), dark rgb(19,46,70).
+- Composition: broad home feature band, three open service columns, fine borders;
+  flush workspace rail at x=0, main x=256 expanded /72 collapsed /0 mobile.
+- Responsive density: 1440×1000 and 390×844 screens checked; readable API sample,
+  two-column mobile statistics with wrapped costs/tokens, no horizontal overflow.
+  English home also checked at 320×740 without overflow.
+- Copy and assets: no above-the-fold copy additions or deletions; only decorative
+  numbering removed. Existing three service claims, GPT-only home, links and book
+  logo retained. Intentional adaptation omits school's photos and slide navigation.
+
+Fixed two render mismatches: old background utility overrode shared canvas;
+primary-color utilities made selected navigation orange instead of specified blue.
+Both are corrected in the final production render. Existing auth/home/router/
+sidebar/dashboard tests pass (199 tests across 18 files); changed-file ESLint and
+production build pass, including 3 locale checks. Verified home CTA to login,
+password reveal, fixture-backed login, themes, rail collapse and mobile navigation
+to API keys. Real backend integration is outside this fixture-based visual check.

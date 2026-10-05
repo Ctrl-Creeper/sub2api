@@ -1,12 +1,12 @@
 <template>
-  <div class="workspace-shell min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="workspace-shell min-h-screen">
     <!-- Sidebar -->
     <AppSidebar />
 
     <!-- Main Content Area -->
     <div
       class="workspace-main relative min-h-screen transition-all duration-300"
-      :class="[sidebarCollapsed ? 'lg:ml-[96px]' : 'lg:ml-[288px]']"
+      :class="[sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[256px]']"
     >
       <!-- Header -->
       <AppHeader />

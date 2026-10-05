@@ -3,6 +3,21 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bnds-color-rule: linear-gradient(to right, #e8340c 25%, #f5a100 25% 50%, #81b934 50% 75%, #0b75be 75%);
+    --bnds-canvas: #f2f7fb;
+    --bnds-border: #dce5ed;
+    --bnds-selection: #eaf3fa;
+    --bnds-link: #075f9b;
+  }
+
+  .dark {
+    --bnds-canvas: #0c1220;
+    --bnds-border: #293548;
+    --bnds-selection: #132e46;
+    --bnds-link: #82c1ed;
+  }
+
   * {
     @apply border-gray-200 dark:border-dark-700;
   }
@@ -584,113 +599,71 @@
     @apply text-gray-400 dark:text-dark-500;
   }
 
-  /* BNDS workspace: inset navigation and open, editorial page chrome. */
-  .workspace-shell {
-    @apply bg-gray-50 dark:bg-dark-950;
-  }
-
-  .workspace-main {
-    min-width: 0;
-  }
-
-  .workspace-content {
-    @apply px-4 pb-6 pt-5 md:px-6 lg:px-8 lg:pb-10;
-  }
-
-  .workspace-content > * {
-    min-width: 0;
-  }
-
-  .workspace-content .card {
-    border-radius: 5px;
-    box-shadow: none;
-  }
-
+  /* Shared school-site masthead, section rules and quiet surfaces. */
+  .workspace-shell { background: var(--bnds-canvas); }
+  .workspace-main { min-width: 0; }
+  .workspace-content { @apply px-4 pb-6 pt-6 md:px-6 lg:px-8 lg:pb-10; }
+  .workspace-content > * { min-width: 0; }
+  .workspace-content .card { border-radius: 4px; box-shadow: none; }
+  .workspace-content .btn,
+  .workspace-content .input { border-radius: 4px; }
   .workspace-header.glass {
-    @apply border-transparent bg-gray-50/95 dark:bg-dark-950/95;
-    backdrop-filter: blur(12px);
+    @apply border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900;
+    backdrop-filter: none;
   }
-
-  .sidebar.sidebar {
-    background: #162c40;
-    border-color: #2e4c65;
-    color: #e5eef7;
-  }
-
+  .workspace-header::before,
   .sidebar.sidebar::before {
     content: '';
+    display: block;
     flex-shrink: 0;
     height: 4px;
-    background: linear-gradient(to right, #e8340c 25%, #f5a100 25% 50%, #81b934 50% 75%, #0b75be 75%);
+    background: var(--bnds-color-rule);
   }
-
-  @media (min-width: 1024px) {
-    .sidebar.sidebar {
-      inset: 16px auto 16px 16px;
-      border: 0;
-      border-radius: 8px;
-    }
+  .workspace-title::after {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: #0b75be;
+    margin-top: 8px;
   }
-
+  .sidebar.sidebar {
+    @apply border-gray-200 bg-white text-gray-700 dark:border-dark-700 dark:bg-dark-900 dark:text-dark-200;
+  }
   .sidebar .sidebar-header {
-    min-height: 96px;
-    border-color: #2e4c65;
+    min-height: 80px;
+    @apply border-gray-200 dark:border-dark-700;
   }
-
   .sidebar .sidebar-brand-title {
-    color: #f3f7fc;
-    letter-spacing: -0.035em;
-    font-weight: 600;
+    @apply text-gray-900 dark:text-white;
+    font-weight: 500;
   }
-
-  .sidebar .sidebar-logo {
-    box-shadow: none;
-    border-radius: 8px;
-  }
-
-  .sidebar .sidebar-nav {
-    padding-top: 24px;
-  }
-
+  .sidebar .sidebar-logo { box-shadow: none; border-radius: 4px; }
+  .sidebar .sidebar-nav { padding-top: 24px; }
   .sidebar .sidebar-link {
-    color: #c2d4e5;
-    border-radius: 4px;
+    @apply text-gray-600 dark:text-dark-300;
+    border-radius: 3px;
     font-weight: 400;
   }
-
   .sidebar .sidebar-link:hover {
-    background: #203a50;
-    color: #fff;
+    @apply bg-gray-50 text-primary-700 dark:bg-dark-800 dark:text-primary-300;
   }
-
-  .sidebar .sidebar-link-active {
-    background: #0b75be;
-    color: #fff;
-    font-weight: 600;
-    box-shadow: inset 3px 0 #f5a100;
-  }
-
+  .sidebar .sidebar-link-active,
   .sidebar .sidebar-link-active:hover {
-    background: #0967a8;
-    color: #fff;
+    background: var(--bnds-selection);
+    color: var(--bnds-link);
+    font-weight: 500;
+    box-shadow: inset 3px 0 #0b75be;
   }
-
   .sidebar .sidebar-section-title {
-    color: #82a6c7;
-    font-size: 10px;
-    letter-spacing: 0.12em;
+    @apply text-gray-400 dark:text-dark-400;
+    font-size: 11px;
+    letter-spacing: 0.08em;
   }
-
   .sidebar .sidebar-footer,
-  .sidebar nav .border-l {
-    border-color: #2e4c65;
-  }
-
+  .sidebar nav .border-l { @apply border-gray-200 dark:border-dark-700; }
   .sidebar a:focus-visible,
-  .sidebar button:focus-visible {
-    outline: 2px solid #82c1ed;
-    outline-offset: -2px;
-  }
+  .sidebar button:focus-visible { outline: 2px solid #0b75be; outline-offset: -2px; }
 
   /* ============ 页面头部 ============ */
   .page-header {
