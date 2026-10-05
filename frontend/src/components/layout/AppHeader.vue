@@ -12,10 +12,10 @@
         </button>
 
         <div class="hidden lg:block">
-          <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             {{ pageTitle }}
           </h1>
-          <p v-if="pageDescription" class="text-xs text-gray-500 dark:text-dark-400">
+          <p v-if="pageDescription" class="mt-1 text-xs text-gray-500 dark:text-dark-400">
             {{ pageDescription }}
           </p>
         </div>

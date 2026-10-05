@@ -6,7 +6,7 @@
     <!-- Main Content Area -->
     <div
       class="workspace-main relative min-h-screen transition-all duration-300"
-      :class="[sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64']"
+      :class="[sidebarCollapsed ? 'lg:ml-[96px]' : 'lg:ml-[288px]']"
     >
       <!-- Header -->
       <AppHeader />

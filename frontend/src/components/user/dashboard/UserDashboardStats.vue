@@ -402,42 +402,118 @@ const formatDuration = (ms: number) => ms >= 1000 ? `${(ms / 1000).toFixed(2)}s`
 </script>
 
 <style scoped>
+.dashboard-stat-grid {
+  @apply border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900;
+  gap: 0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
 .dashboard-stat-grid .card {
-  @apply relative min-w-0 p-4 md:p-5;
+  @apply relative min-w-0 border-0 border-l border-gray-200 bg-transparent dark:border-dark-700;
+  border-radius: 0;
+  padding: 22px 20px;
+  --stat-accent: #0b75be;
+  border-top: 3px solid var(--stat-accent);
+}
+
+.dashboard-stat-grid .card:nth-child(2) {
+  --stat-accent: #81b934;
+}
+
+.dashboard-stat-grid .card:nth-child(3) {
+  --stat-accent: #f5a100;
+}
+
+.dashboard-stat-grid .card:nth-child(4) {
+  --stat-accent: #e8340c;
+}
+
+.dark .dashboard-stat-grid .card {
+  border-top-color: var(--stat-accent);
+}
+
+.dashboard-stat-grid .card:first-child {
+  border-left: 0;
 }
 
 .dashboard-stat-grid .card > div {
-  @apply items-start;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .dashboard-stat-icon {
-  @apply shrink-0 bg-primary-50 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300;
+  @apply shrink-0 text-primary-700 dark:text-primary-300;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  margin-top: 2px;
 }
 
 .dashboard-stat-icon :deep(svg) {
   color: inherit;
+  width: 16px;
+  height: 16px;
 }
 
 .dashboard-stat-grid .card > div > div:last-child {
-  @apply min-w-0 flex-1;
+  min-width: 0;
+  flex: 1;
   overflow-wrap: anywhere;
 }
 
 .dashboard-stat-grid .text-xl {
-  @apply font-semibold tabular-nums tracking-tight text-gray-900 dark:text-white;
+  @apply tabular-nums text-gray-900 dark:text-white;
+  margin: 8px 0;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.04em;
 }
 
 .dashboard-stat-grid .text-xl > span:first-child {
   @apply text-gray-900 dark:text-white;
 }
 
+.dashboard-stat-grid .text-xs {
+  line-height: 1.7;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+}
+
+@media (max-width: 1023px) {
+  .dashboard-stat-grid .card:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .dashboard-stat-grid .card:nth-child(n + 3) {
+    @apply border-t border-gray-200 dark:border-dark-700;
+  }
+
+}
+
 @media (max-width: 639px) {
+  .dashboard-stat-grid .card {
+    padding: 18px 14px;
+  }
+
   .dashboard-stat-grid .card > div {
-    @apply flex-col gap-3;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .dashboard-stat-grid .card > div > div:last-child {
-    @apply w-full;
+    width: 100%;
   }
+
+  .dashboard-stat-grid .text-xl {
+    font-size: 23px;
+  }
+
 }
 </style>

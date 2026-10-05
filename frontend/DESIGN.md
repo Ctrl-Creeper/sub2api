@@ -85,3 +85,69 @@ GPT only, with an OpenAI chat-completions example. Remove unused pain-point,
 comparison, free-trial and additional-provider copy. Existing homepage tests
 (13), locale completeness checks (3), changed-file ESLint and production build
 pass. This update changes homepage presentation and copy.
+
+## Editorial layout revision — implementation brief
+
+Direction: a campus publication, using the existing four-color book mark and
+school palette. White surfaces in light mode, deep navy in dark mode; no raster
+assets, new slogans, fake statistics or external fonts. Image Gen is unavailable
+in this session, so the written brief is the design reference; verify the actual
+screens with the built-in browser and inspect its screenshots with view_image.
+
+Home: preserve the current header controls, site name/subtitle, GPT-only offer,
+CTA destinations and custom-home precedence. Set the brand name as a large,
+left-aligned headline. A blue GPT typography panel occupies the smaller right
+column, with the existing API example beneath. Replace the three-icon feature
+grid with three numbered horizontal rows, using the existing official-service,
+student-price and usage-billing copy. Mobile stacks the model panel after the CTA.
+
+Auth: replace the two-column blue-panel/form frame with a centered masthead
+above a rectangular form surface. Keep every form slot, validation, OAuth,
+verification, agreement and footer control. Brand heading 28–32px, body 14px,
+inputs and primary action at least 44px tall. The form grows with its content.
+
+Workspace: preserve menu order and the collapsed/mobile navigation states.
+Desktop navigation becomes an inset navy rail, offset 16px from the viewport,
+with a four-color top edge. Main content starts at 288px (collapsed: 96px).
+Use an open page heading, more square panel geometry, and statistics arranged
+as a single ledger band with separators, prominent figures and colored top rules.
+Tables, charts, balances and all functional controls retain their data and order.
+
+Signature details: four-color rules, numbered service rows, rectangular form
+surfaces, ledger statistics. System sans typography; restrained shadows. Mobile
+uses the existing overlay navigation and compact two-column statistics. Verify
+home/login/dashboard at 1440×1000 and 390×844, both themes, login controls,
+sidebar collapse and mobile drawer, and existing frontend behavior tests.
+
+### Layout review ledger
+
+Reference: the editorial implementation brief above; the available environment
+has no Image Gen tool, so there is no generated concept image. Paseo's built-in
+browser rendered the real production bundle; screenshot PNGs were inspected
+using view_image. QA files are temporary and are removed after verification.
+
+- Copy: Chinese and English retain the official-GPT/student-price offer, three
+  service descriptions, existing navigation and CTA destinations. No new slogan,
+  price amount, statistic or provider claim was added. The provider heading and
+  terminal window are consolidated into the model panel as specified.
+- Composition: large left-aligned homepage brand, smaller blue GPT panel, numbered
+  service rows; auth masthead sits above the form. These match the written brief.
+- Typography: homepage title is 76px on desktop, 44px on mobile; form inputs are
+  46px tall. Statistics are 26px/23px with tabular numbers; labels remain legible.
+- Palette and assets: original four-color book SVG, white homepage, blue GPT
+  panel and navy navigation; no new raster imagery or external fonts.
+- Geometry: desktop sidebar sits at (16px,16px), main starts at 288px; collapsed
+  navigation is 72px wide and main starts at 96px. Mobile content starts at zero,
+  closed navigation ends at zero, and the open drawer spans 256px.
+- Responsive behavior: desktop 1440×1000 and mobile 390×844 were inspected for
+  home, login and dashboard. English home also fits at 320×740. No horizontal
+  overflow; balances, costs and token counts remain visible, with mobile wrapping.
+- Interaction: homepage CTA reaches login; password reveal works; fixture-backed
+  login reaches dashboard. Theme switching, navigation collapse/expand and mobile
+  menu navigation to API keys work. Live backend integration was not exercised.
+
+Validation: 199 existing auth/home/navigation/dashboard/router tests, the build's
+3 locale checks, changed-file ESLint, and production build pass. Screenshot review
+caught the dark border override; the affected scoped selectors were corrected and
+the production bundle rebuilt. No remaining deviations from the written brief
+other than using code-native design instead of an unavailable generated concept.

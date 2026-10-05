@@ -584,7 +584,7 @@
     @apply text-gray-400 dark:text-dark-500;
   }
 
-  /* Relay workspace chrome. Explicit selectors keep utility-based pages consistent. */
+  /* BNDS workspace: inset navigation and open, editorial page chrome. */
   .workspace-shell {
     @apply bg-gray-50 dark:bg-dark-950;
   }
@@ -594,11 +594,21 @@
   }
 
   .workspace-content {
-    @apply p-4 md:p-6 lg:p-8;
+    @apply px-4 pb-6 pt-5 md:px-6 lg:px-8 lg:pb-10;
+  }
+
+  .workspace-content > * {
+    min-width: 0;
+  }
+
+  .workspace-content .card {
+    border-radius: 5px;
+    box-shadow: none;
   }
 
   .workspace-header.glass {
-    @apply border-gray-200 bg-gray-50/95 dark:border-dark-700 dark:bg-dark-950/95;
+    @apply border-transparent bg-gray-50/95 dark:bg-dark-950/95;
+    backdrop-filter: blur(12px);
   }
 
   .sidebar.sidebar {
@@ -607,8 +617,23 @@
     color: #e5eef7;
   }
 
+  .sidebar.sidebar::before {
+    content: '';
+    flex-shrink: 0;
+    height: 4px;
+    background: linear-gradient(to right, #e8340c 25%, #f5a100 25% 50%, #81b934 50% 75%, #0b75be 75%);
+  }
+
+  @media (min-width: 1024px) {
+    .sidebar.sidebar {
+      inset: 16px auto 16px 16px;
+      border: 0;
+      border-radius: 8px;
+    }
+  }
+
   .sidebar .sidebar-header {
-    min-height: 80px;
+    min-height: 96px;
     border-color: #2e4c65;
   }
 
@@ -629,7 +654,7 @@
 
   .sidebar .sidebar-link {
     color: #c2d4e5;
-    border-radius: 7px;
+    border-radius: 4px;
     font-weight: 400;
   }
 
@@ -639,15 +664,15 @@
   }
 
   .sidebar .sidebar-link-active {
-    background: #e9f4fc;
-    color: #075e9b;
+    background: #0b75be;
+    color: #fff;
     font-weight: 600;
     box-shadow: inset 3px 0 #f5a100;
   }
 
   .sidebar .sidebar-link-active:hover {
-    background: #d0e8fa;
-    color: #075e9b;
+    background: #0967a8;
+    color: #fff;
   }
 
   .sidebar .sidebar-section-title {
