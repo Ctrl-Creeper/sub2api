@@ -73,7 +73,7 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       tag: ${{ needs.sync.outputs.tag }}
-      simple_release: false
+      simple_release: true
       dry_run: false
     secrets: inherit
 

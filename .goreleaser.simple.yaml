@@ -1,4 +1,4 @@
-# 简化版 GoReleaser 配置 - 仅发布 x86_64 GHCR 镜像
+# Linux x86_64 发布配置 - 安装包、校验和及 GHCR 镜像
 version: 2
 
 project_name: sub2api
@@ -26,12 +26,18 @@ builds:
       - -X main.Date={{.Date}}
       - -X main.BuildType=release
 
-# 跳过 archives
-archives: []
+archives:
+  - id: default
+    format: tar.gz
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - LICENSE*
+      - README*
+      - deploy/*
 
-# 跳过 checksum
 checksum:
-  disable: true
+  name_template: 'checksums.txt'
+  algorithm: sha256
 
 changelog:
   disable: true
@@ -66,12 +72,9 @@ release:
   draft: false
   # Numeric fork revisions are stable; upstream rc/beta tags remain prereleases.
   prerelease: '{{ if (filter .Version "^[0-9]+[.][0-9]+[.][0-9]+-[1-9][0-9]*$") }}false{{ else }}auto{{ end }}'
-  name_template: "v{{.Version}} · BNDS AI普及计划 (Simple)"
-  # 跳过上传二进制包
-  skip_upload: true
+  name_template: "v{{.Version}} · BNDS AI普及计划"
   header: |
-    > AI API Gateway Platform - 将 AI 订阅配额分发和管理
-    > ⚡ Simple Release: 仅包含 x86_64 GHCR 镜像
+    > BNDS AI普及计划 — Linux x86_64 安装包、校验和及 GHCR 镜像
 
     {{ .Env.TAG_MESSAGE }}
 

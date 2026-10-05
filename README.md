@@ -68,7 +68,8 @@ BNDS 前端。二进制安装可使用网页更新或 `sudo bash install.sh upgr
 ## 上游同步与自动发布
 
 `Sync upstream release` 工作流每小时检查上游最新正式 Release，正常合并上游
-源码并保留 BNDS 定制，在本 fork 创建版本标签并构建二进制、校验和及容器镜像。
+源码并保留 BNDS 定制，在本 fork 创建版本标签。以后默认只构建 **Linux x86_64
+（amd64）** 安装包、SHA256 校验和及 GHCR 容器镜像。
 
 版本统一为 **上游标号-本仓库修订号**，修订号从 `1` 开始：
 

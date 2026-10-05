@@ -11,10 +11,10 @@ on:
         required: true
         type: string
       simple_release:
-        description: 'Simple release: only x86_64 GHCR image, skip other artifacts'
+        description: 'Linux x86_64 only: binary, checksums and GHCR image'
         required: false
         type: boolean
-        default: false
+        default: true
       dry_run:
         description: 'Build and verify all selected artifacts without publishing'
         required: false
@@ -27,7 +27,7 @@ on:
         type: string
       simple_release:
         type: boolean
-        default: false
+        default: true
       dry_run:
         type: boolean
         default: false

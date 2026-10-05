@@ -72,7 +72,7 @@ class ReleaseMatrixTest(unittest.TestCase):
     def test_publication_config_has_no_compilation_or_docker_work(self):
         for simple in (False, True):
             with self.subTest(simple=simple):
-                original = release.config(simple)
+                original = release.config()
                 release.generate_config(argparse.Namespace(mode='publish', simple=simple, output='publisher.yaml'))
                 data = yaml.safe_load(Path('publisher.yaml').read_text())
                 self.assertTrue(data['builds'][0]['skip'])
@@ -80,11 +80,12 @@ class ReleaseMatrixTest(unittest.TestCase):
                 self.assertFalse(data['dockers'])
                 self.assertEqual(data['release']['header'], original['release']['header'])
                 self.assertEqual(data['release']['footer'], original['release']['footer'])
-                if simple:
-                    self.assertTrue(data['checksum']['disable'])
-                    self.assertTrue(data['release']['skip_upload'])
-                else:
-                    self.assertEqual(data['checksum']['extra_files'], data['release']['extra_files'])
+                self.assertFalse(data['release'].get('skip_upload', False))
+                self.assertEqual(data['checksum']['extra_files'], data['release']['extra_files'])
+                self.assertEqual(data['release']['extra_files'], [
+                    {'glob': 'release-input/' + release.archive_name('9.8.7-1', target)}
+                    for target in release.targets(simple)
+                ])
 
     def test_collect_and_verify_hash_and_source_binding(self):
         args = self.fixture_artifacts()

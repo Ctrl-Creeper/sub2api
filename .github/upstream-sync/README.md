@@ -27,9 +27,9 @@ GitHub 定时任务可能延迟；fork 不会直接收到上游的 `release` 事
 
 正常情况下不需要 DockerHub 凭据：发布到 fork 自己的 GitHub Releases 和
 `ghcr.io/ctrl-creeper/sub2api`。已有 DockerHub 配置继续生效。
-默认沿用完整 Release 矩阵，包括二进制、校验和及 amd64/arm64 镜像。
-已有仓库变量 `SIMPLE_RELEASE=true` 会继续覆盖为精简发布；需要完整产物时删除它
-或设为 `false`。
+默认仅发布 **Linux x86_64（amd64）** 安装包、SHA256 校验和及 GHCR 镜像。
+自动同步调用和手动发布默认启用 `simple_release=true`，当前仓库变量
+`SIMPLE_RELEASE=true` 也已设置。macOS、Windows 和 arm64 不再默认构建。
 
 ## 同步及发布方式
 
