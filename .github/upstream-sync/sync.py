@@ -16,6 +16,7 @@ ISSUE_MARKER = '<!-- bnds-upstream-release-sync -->'
 TAG_RE = re.compile(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?')
 FORK_TAG_RE = re.compile(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?-[1-9]\d*')
 REPO_RE = re.compile(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+')
+FORK_READMES = ('README.md', 'README_CN.md', 'README_JA.md')
 
 
 class GitHub:
@@ -104,19 +105,35 @@ def configure_git():
 
 
 def merge_release(upstream_sha, tag):
-    """Normal three-way merge: conflicts are never resolved with an ours strategy."""
+    """Merge upstream code while retaining the fork's root README files."""
     result = git('merge', '--no-ff', '--no-commit', upstream_sha, check=False)
+    conflicts = git('diff', '--name-only', '--diff-filter=U', '-z').stdout
+    paths = [path for path in conflicts.split('\0') if path]
+    if result.returncode and not paths:
+        report(tag=tag, upstream_sha=upstream_sha, conflicts=[],
+               error='merge failed', log=result.stdout + result.stderr)
+        git('merge', '--abort', check=False)
+        raise RuntimeError('upstream merge failed')
+
+    # Root README files describe this fork. Preserve them even when an upstream
+    # edit merges cleanly, including the fork's intentional deletions.
+    existing = set(git('ls-tree', '--name-only', '-z', 'HEAD', '--', *FORK_READMES).stdout.split('\0'))
+    retained = [path for path in FORK_READMES if path in existing]
+    deleted = [path for path in FORK_READMES if path not in existing]
+    if retained:
+        git('restore', '--source=HEAD', '--staged', '--worktree', '--', *retained)
+    if deleted:
+        git('rm', '-f', '--ignore-unmatch', '--', *deleted)
+    paths = [path for path in paths if path not in FORK_READMES]
     if result.returncode:
-        conflicts = git('diff', '--name-only', '--diff-filter=U', '-z').stdout
-        paths = [path for path in conflicts.split('\0') if path]
         # VERSION is generated from the fork tag, so resolve only this metadata file.
         version_path = 'backend/cmd/server/VERSION'
         if version_path in paths:
             Path(version_path).write_text(tag.removeprefix('v') + '\n')
             git('add', version_path)
             paths.remove(version_path)
-            if not paths:
-                return
+        if not paths:
+            return
         report(tag=tag, upstream_sha=upstream_sha, conflicts=paths,
                error='merge conflict' if paths else 'merge failed', log=result.stdout + result.stderr)
         git('merge', '--abort', check=False)

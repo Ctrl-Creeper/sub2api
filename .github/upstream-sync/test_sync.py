@@ -40,6 +40,8 @@ class SyncTest(unittest.TestCase):
         Path('frontend/brand').write_text('Sub2API\n')
         Path('backend/cmd/server').mkdir(parents=True)
         Path('backend/cmd/server/VERSION').write_text('1.0.0\n')
+        for path in sync.FORK_READMES:
+            Path(path).write_text('Original project documentation\n')
         sync.git('add', '.')
         sync.git('commit', '-m', 'base')
         self.base = sync.git('rev-parse', 'HEAD').stdout.strip()
@@ -54,17 +56,25 @@ class SyncTest(unittest.TestCase):
         self.api.alert.return_value = None
         self.api.release.side_effect = lambda tag='', upstream=False: self.release if upstream else None
 
-    def histories(self, conflict=False):
+    def histories(self, conflict=False, readme_conflict=False):
         sync.git('checkout', '-b', 'upstream')
         Path('backend/new-feature').write_text('new upstream behavior\n')
         if conflict:
             Path('frontend/brand').write_text('upstream replacement\n')
+        if readme_conflict:
+            for path in sync.FORK_READMES:
+                Path(path).write_text('Updated upstream documentation\n')
+            Path('backend/cmd/server/VERSION').write_text('1.1.0\n')
         sync.git('add', '.')
         sync.git('commit', '-m', 'upstream update')
         upstream_sha = sync.git('rev-parse', 'HEAD').stdout.strip()
         sync.git('tag', self.release['tag_name'])
         sync.git('checkout', 'main')
         Path('frontend/brand').write_text('BNDS AI普及计划\n')
+        if readme_conflict:
+            for path in sync.FORK_READMES:
+                Path(path).write_text('BNDS fork documentation\n')
+            Path('backend/cmd/server/VERSION').write_text('1.0.0-1\n')
         sync.git('add', '.')
         sync.git('commit', '-m', 'custom frontend')
         fork_sha = sync.git('rev-parse', 'HEAD').stdout.strip()
@@ -96,6 +106,53 @@ class SyncTest(unittest.TestCase):
         self.assertFalse(sync.STATE.exists())
         self.assertNotEqual(sync.git('rev-parse', '--verify', 'refs/tags/v1.1.0-1', check=False).returncode, 0)
         self.assertEqual(json.loads(Path(os.environ['SYNC_REPORT']).read_text())['conflicts'], ['frontend/brand'])
+        self.assertEqual(sync.git('status', '--porcelain').stdout, '')
+
+    def test_readme_and_version_conflicts_do_not_block_upstream_code(self):
+        upstream_sha, _ = self.histories(readme_conflict=True)
+        sync.prepare_tag('v1.1.0-1', upstream_sha, self.release)
+        for path in sync.FORK_READMES:
+            self.assertEqual(Path(path).read_text(), 'BNDS fork documentation\n')
+        self.assertTrue(Path('backend/new-feature').exists())
+        self.assertEqual(Path('backend/cmd/server/VERSION').read_text(), '1.1.0-1\n')
+        self.assertEqual(sync.git('diff', '--name-only', '--diff-filter=U').stdout, '')
+        self.assertIn(upstream_sha, sync.git('show', '-s', '--format=%P', 'HEAD').stdout)
+
+    def test_clean_upstream_readme_edits_and_deletions_keep_fork_files(self):
+        sync.git('checkout', '-b', 'upstream')
+        Path('README.md').write_text('Upstream-only edit\n')
+        sync.git('rm', 'README_CN.md')
+        Path('backend/new-feature').write_text('new upstream behavior\n')
+        sync.git('add', '.')
+        sync.git('commit', '-m', 'upstream documentation and code')
+        upstream_sha = sync.git('rev-parse', 'HEAD').stdout.strip()
+        sync.git('checkout', 'main')
+        sync.prepare_tag('v1.1.0-1', upstream_sha, self.release)
+        for path in sync.FORK_READMES:
+            self.assertEqual(Path(path).read_text(), 'Original project documentation\n')
+        self.assertTrue(Path('backend/new-feature').exists())
+
+    def test_upstream_readme_updates_do_not_restore_deleted_fork_readmes(self):
+        sync.git('checkout', '-b', 'upstream')
+        Path('README_JA.md').write_text('Updated upstream Japanese documentation\n')
+        sync.git('add', '.')
+        sync.git('commit', '-m', 'upstream documentation')
+        upstream_sha = sync.git('rev-parse', 'HEAD').stdout.strip()
+        sync.git('checkout', 'main')
+        sync.git('rm', 'README_JA.md')
+        sync.git('commit', '-m', 'remove unused fork documentation')
+        sync.prepare_tag('v1.1.0-1', upstream_sha, self.release)
+        self.assertFalse(Path('README_JA.md').exists())
+        self.assertNotIn('README_JA.md', sync.git('ls-files').stdout)
+
+    def test_readme_policy_still_aborts_and_reports_code_conflicts(self):
+        upstream_sha, fork_sha = self.histories(conflict=True, readme_conflict=True)
+        with self.assertRaisesRegex(RuntimeError, 'merge conflict'):
+            sync.prepare_tag('v1.1.0-1', upstream_sha, self.release)
+        self.assertEqual(sync.git('rev-parse', 'HEAD').stdout.strip(), fork_sha)
+        self.assertEqual(json.loads(Path(os.environ['SYNC_REPORT']).read_text())['conflicts'], ['frontend/brand'])
+        for path in sync.FORK_READMES:
+            self.assertEqual(Path(path).read_text(), 'BNDS fork documentation\n')
         self.assertEqual(sync.git('status', '--porcelain').stdout, '')
 
     def test_full_sync_pushes_the_custom_tag_and_outputs_release_input(self):

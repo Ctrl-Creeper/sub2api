@@ -36,7 +36,10 @@ GitHub 定时任务可能延迟；fork 不会直接收到上游的 `release` 事
 - 上游标签获取到独立的 `refs/upstream-release/`，不导入或覆盖 fork 标签。
 - 对默认分支进行正常三方合并。没有 `ours` 策略，也不会整体替换前端目录；
   无冲突的上游功能改动和 BNDS 定制会一起保留，冲突留待人工处理。
-  `VERSION` 是生成的版本元数据，其冲突按本次 fork 标签重写；其他文件仍需人工解决。
+  根目录的 `README.md`、`README_CN.md`、`README_JA.md` 始终保留 fork 版本
+  （包括 fork 中已删除的文件），不会被上游 README 更新覆盖或因其冲突暂停同步。
+  其他目录的 README 仍正常合并。`VERSION` 是生成的版本元数据，其冲突按本次
+  fork 标签重写；其他文件仍需人工解决。
 - 更新 `backend/cmd/server/VERSION`，提交同步记录
   `.github/upstream-sync/state.json`，在 fork 的提交创建 `上游标号-修订号` 标签。
   例如上游 `v0.2.14` 对应 fork `v0.2.14-1`，修订号从 `1` 开始。
