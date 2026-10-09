@@ -327,6 +327,28 @@ class SyncTest(unittest.TestCase):
         sync.notify(self.api)
         self.assertEqual(self.api.request.call_args.args[0], 'PATCH')
 
+    def test_workflow_permission_notification_explains_failure_and_token_fix(self):
+        for permission in ('workflows', 'workflow'):
+            with self.subTest(permission=permission):
+                error = ("git push failed: refusing to update workflow `.github/workflows/backend-ci.yml` "
+                         f"without `{permission}` " + ('permission' if permission == 'workflows' else 'scope'))
+                sync.report(tag='v1.1.0-1', error=error)
+                self.api.request.return_value = {'html_url': 'https://github.com/example/issues/1'}
+                sync.notify(self.api)
+                body = self.api.request.call_args.args[-1]['body']
+                self.assertIn(error, body)
+                self.assertIn('UPSTREAM_SYNC_TOKEN', body)
+                self.assertIn('Contents 和 Workflows', body)
+                self.assertNotIn('冲突文件：', body)
+
+    def test_other_failure_notification_includes_reported_reason(self):
+        sync.report(tag='v1.1.0-1', error='release tag is not an ancestor of the default branch')
+        self.api.request.return_value = {'html_url': 'https://github.com/example/issues/1'}
+        sync.notify(self.api)
+        body = self.api.request.call_args.args[-1]['body']
+        self.assertIn('release tag is not an ancestor of the default branch', body)
+        self.assertNotIn('这是工作流写入权限不足', body)
+
 
 if __name__ == '__main__':
     unittest.main()

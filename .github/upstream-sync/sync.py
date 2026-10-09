@@ -289,11 +289,19 @@ def notify(api):
     mentions = ' '.join('@' + user for user in users if re.fullmatch(r'[A-Za-z0-9-]+', user))
     conflicts = data.get('conflicts', [])
     details = '\n'.join('- `' + path.replace('`', '') + '`' for path in conflicts)
+    error = data.get('error', '')
+    error_details = ('失败原因：\n\n' + '\n'.join('> ' + line for line in error.splitlines()) + '\n\n'
+                     if error else '')
+    if 'without `workflows` permission' in error or 'without `workflow` scope' in error:
+        error_details += ('这是工作流写入权限不足。请配置仓库 Secret `UPSTREAM_SYNC_TOKEN`，'
+                          '使用具有 Contents 和 Workflows 读写权限的令牌，再手动重试。'
+                          '`GITHUB_TOKEN` 的 `contents: write` 无法授权修改工作流。\n\n')
     body = (f'{ISSUE_MARKER}\n{mentions}\n\n'
             f'上游 **{tag}** 自动同步或发布失败。\n\n'
             f'- Actions: {run_url}\n'
             f'- Job results: {os.environ.get("SYNC_RESULTS", "unknown")}\n\n'
             + ('冲突文件：\n' + details + '\n\n' if conflicts else '')
+            + error_details
             + '已暂停后续自动同步。默认分支不会写入未解决的合并，发布标签不会被强制覆盖。\n\n'
             '请查看 Actions 日志及 upstream-sync-report，解决冲突后提交到默认分支，'
             '再手动运行 Sync upstream release。未发布标签的构建重试使用原提交；'
