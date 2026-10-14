@@ -36,13 +36,14 @@
             </div>
 
             <!-- Status Filter (visible when enabled) -->
-            <div v-if="visibleFilters.has('status')" class="w-full sm:w-32">
+            <div v-if="visibleFilters.has('status')" class="w-full sm:w-36">
               <Select
                 v-model="filters.status"
                 :options="[
                   { value: '', label: t('admin.users.allStatus') },
                   { value: 'active', label: t('common.active') },
-                  { value: 'disabled', label: t('admin.users.disabled') }
+                  { value: 'disabled', label: t('admin.users.disabled') },
+                  { value: 'pending', label: t('admin.users.pendingReview') }
                 ]"
                 @change="applyFilter"
               />
@@ -580,17 +581,36 @@
             />
           </template>
 
-          <template #cell-status="{ value }">
+          <template #cell-status="{ value, row }">
             <div class="flex items-center gap-1.5">
               <span
                 :class="[
                   'inline-block h-2 w-2 rounded-full',
-                  value === 'active' ? 'bg-green-500' : 'bg-red-500'
+                  value === 'active' ? 'bg-green-500' : value === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
                 ]"
               ></span>
               <span class="text-sm text-gray-700 dark:text-gray-300">
-                {{ value === 'active' ? t('common.active') : t('admin.users.disabled') }}
+                {{
+                  value === 'active'
+                    ? t('common.active')
+                    : value === 'pending'
+                      ? t('admin.users.pendingReview')
+                      : t('admin.users.disabled')
+                }}
               </span>
+              <!-- 注册审核：待审核用户展示申请理由 tooltip -->
+              <div
+                v-if="value === 'pending' && row.registration_reason"
+                class="group/reason relative inline-flex cursor-default"
+              >
+                <Icon name="infoCircle" size="xs" class="h-3.5 w-3.5 text-yellow-500" />
+                <div
+                  class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 max-w-xs -translate-x-1/2 whitespace-normal rounded bg-gray-900 px-2.5 py-1.5 text-xs text-white opacity-0 shadow-lg transition-opacity duration-75 group-hover/reason:opacity-100 dark:bg-dark-600"
+                >
+                  {{ row.registration_reason }}
+                  <div class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-dark-600"></div>
+                </div>
+              </div>
             </div>
           </template>
 
@@ -634,7 +654,15 @@
               >
                 <Icon v-if="row.status === 'active'" name="ban" size="sm" />
                 <Icon v-else name="checkCircle" size="sm" />
-                <span class="text-xs">{{ row.status === 'active' ? t('admin.users.disable') : t('admin.users.enable') }}</span>
+                <span class="text-xs">
+                  {{
+                    row.status === 'active'
+                      ? t('admin.users.disable')
+                      : row.status === 'pending'
+                        ? t('admin.users.reviewApprove')
+                        : t('admin.users.enable')
+                  }}
+                </span>
               </button>
 
               <!-- More Actions Menu Trigger -->

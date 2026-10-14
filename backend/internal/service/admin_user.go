@@ -297,6 +297,12 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 			input.ActorAdminID, user.ID, oldRole, user.Role)
 	}
 
+	// 注册审核：状态从 pending 变为 active/disabled 即管理员审核结论，落审计日志。
+	if oldStatus == StatusPending && user.Status != oldStatus {
+		logger.LegacyPrintf("service.admin", "audit: registration review actor_admin_id=%d target_user_id=%d review_result=%s",
+			input.ActorAdminID, user.ID, user.Status)
+	}
+
 	// 同步用户专属分组倍率
 	if input.GroupRates != nil && s.userGroupRateRepo != nil {
 		if err := s.userGroupRateRepo.SyncUserGroupRates(ctx, user.ID, input.GroupRates); err != nil {

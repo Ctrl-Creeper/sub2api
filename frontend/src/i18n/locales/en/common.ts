@@ -248,6 +248,8 @@ export default {
     loginFailed: 'Login failed. Please check your credentials and try again.',
     errors: {
       USER_NOT_ACTIVE: 'Account has been disabled.',
+      REGISTRATION_PENDING:
+        'Your registration is pending admin review. You can log in once it has been approved.',
     },
     registrationFailed: 'Registration failed. Please try again.',
     emailDomainRegistrationLimit:
@@ -303,6 +305,15 @@ export default {
     invitationCodeInvalid: 'Invalid or used invitation code',
     invitationCodeValidating: 'Validating invitation code...',
     invitationCodeInvalidCannotRegister: 'Invalid invitation code. Please check and try again',
+    registrationReasonLabel: 'Application Reason',
+    registrationReasonPlaceholder: 'Tell us why you would like to join (usage, team, etc.)',
+    registrationReasonRequired: 'Please describe your reason for registering',
+    registrationReviewNotice:
+      'This site requires admin approval. Your account will be reviewable before you can log in.',
+    registrationPendingReviewSuccess:
+      'Registration submitted! Please wait for admin approval before logging in.',
+    registrationPendingLoginError:
+      'Your registration is pending admin review. You can log in once it has been approved.',
     oauthOrContinue: 'or continue with others',
     linuxdo: {
       signIn: 'Continue with Linux.do',

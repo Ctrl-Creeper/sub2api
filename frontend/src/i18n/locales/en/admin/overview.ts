@@ -622,6 +622,8 @@ export default {
       expired: 'Expired',
       disable: 'Disable',
       enable: 'Enable',
+      pendingReview: 'Pending Review',
+      reviewApprove: 'Approve',
       disableUser: 'Disable User',
       enableUser: 'Enable User',
       viewApiKeys: 'View API Keys',
