@@ -70,6 +70,21 @@
         />
       </div>
 
+      <div v-if="supportsPlainAPIKeyTest" class="flex flex-col gap-1.5">
+        <label class="flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            v-model="usePlainAPIKeyTest"
+            type="checkbox"
+            class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            :disabled="status === 'connecting'"
+          />
+          {{ t('admin.accounts.plainAPIKeyTest') }}
+        </label>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {{ t('admin.accounts.plainAPIKeyTestHint') }}
+        </p>
+      </div>
+
       <div v-if="isOpenAIAccount" class="space-y-1.5">
         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
           {{ t('admin.accounts.openai.testMode') }}
@@ -424,6 +439,9 @@ const imageFileInput = ref<HTMLInputElement | null>(null)
 const audioFileInput = ref<HTMLInputElement | null>(null)
 const isOpenAIAccount = computed(() => props.account?.platform === 'openai')
 const isGrokAccount = computed(() => props.account?.platform === 'grok')
+// 所有 api_key 账号支持朴素测试（不伪装官方 CLI 客户端）
+const supportsPlainAPIKeyTest = computed(() => props.account?.type === 'apikey')
+const usePlainAPIKeyTest = ref(false)
 const openAITestModeOptions = computed(() => [
   { value: 'default', label: t('admin.accounts.openai.testModeDefault') },
   { value: 'compact', label: t('admin.accounts.openai.testModeCompact') }
@@ -850,12 +868,16 @@ const startTest = async () => {
       mode?: string
       image_data_url?: string
       audio_data_url?: string
+      plain_api_key?: boolean
     } = {
       model_id: showModelSelect.value ? selectedModelId.value : '',
       prompt: supportsPromptInput.value ? testPrompt.value.trim() : ''
     }
     if (isOpenAIAccount.value) {
       requestBody.mode = testMode.value
+    }
+    if (supportsPlainAPIKeyTest.value && usePlainAPIKeyTest.value) {
+      requestBody.plain_api_key = true
     }
     if (isGrokAccount.value) {
       // Always send explicit Grok mode. search/tts/stt/realtime are standalone
