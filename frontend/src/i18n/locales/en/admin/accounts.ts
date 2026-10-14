@@ -806,6 +806,12 @@ export default {
         noResponseBody: 'No response body from server'
       },
       anthropic: {
+        outboundIdentity: 'Outbound identity',
+        outboundIdentityDesc:
+          'Controls the client identity forwarded upstream. Default passes client headers through; Hermes Agent rewrites outbound traffic to the Anthropic Python SDK fingerprint (strips Claude Code headers and metadata); Plain only strips Claude Code markers.',
+        outboundIdentityClient: 'Pass through client (default)',
+        outboundIdentityHermes: 'Hermes Agent (Python SDK fingerprint)',
+        outboundIdentityPlain: 'Plain (strip markers)',
         apiKeyPassthrough: 'Auto passthrough (auth only)',
         apiKeyPassthroughDesc:
           'Only applies to Anthropic API Key accounts. When enabled, messages/count_tokens are forwarded in passthrough mode with auth replacement only, while billing/concurrency/audit and safety filtering are preserved. Disable to roll back immediately.',

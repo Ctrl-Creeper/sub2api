@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
 	"github.com/tidwall/gjson"
@@ -313,6 +314,12 @@ func (s *GatewayService) buildUpstreamRequestAnthropicAPIKeyPassthrough(
 	// 能力维度 body sanitize：透传路径上 anthropic-beta header 原样透传客户端值，
 	// 依此决定是否保留 body 中的 context_management。避免“客户端 body 带字段但
 	// header 忘记带 beta token”的客户端 bug 在透传场景下让上游 400。
+	//
+	// 出站身份改写（hermes_agent / plain）：body 先剥 metadata 再参与 beta 对称净化。
+	outboundIdentity := account.GetOutboundIdentity()
+	if outboundIdentity != OutboundIdentityClient {
+		body = applyAnthropicOutboundIdentityBody(outboundIdentity, body)
+	}
 	clientBeta := ""
 	if c != nil && c.Request != nil {
 		clientBeta = getHeaderRaw(c.Request.Header, "anthropic-beta")
@@ -320,6 +327,13 @@ func (s *GatewayService) buildUpstreamRequestAnthropicAPIKeyPassthrough(
 	// 账号覆写了 anthropic-beta 时，覆写值即最终上游值：净化以覆写值为准
 	if beta, ok := account.HeaderOverrideValue("anthropic-beta"); ok {
 		clientBeta = beta
+	}
+	// 身份改写的最终 beta 语义：hermes 固定两项 beta，plain 无 beta——
+	// 与 header 层 applyAnthropicOutboundIdentityHeaders 写入的值同源。
+	if outboundIdentity == OutboundIdentityHermes {
+		clientBeta = claude.HermesBetaHeader
+	} else if outboundIdentity == OutboundIdentityPlain {
+		clientBeta = ""
 	}
 	if sanitized, changed := sanitizeAnthropicBodyForBetaTokens(body, clientBeta); changed {
 		body = sanitized
@@ -361,6 +375,12 @@ func (s *GatewayService) buildUpstreamRequestAnthropicAPIKeyPassthrough(
 	}
 	if getHeaderRaw(req.Header, "anthropic-version") == "" {
 		setHeaderRaw(req.Header, "anthropic-version", "2023-06-01")
+	}
+
+	// api_key 出站身份改写（hermes_agent / plain）：整组替换透传的身份头。
+	// 位于覆写之前，保留账号级 HeaderOverrides 的最终决定权。
+	if outboundIdentity != OutboundIdentityClient {
+		applyAnthropicOutboundIdentityHeaders(outboundIdentity, req.Header)
 	}
 
 	// 账号级请求头覆写（最终生效，覆盖上面所有来源的同名头）

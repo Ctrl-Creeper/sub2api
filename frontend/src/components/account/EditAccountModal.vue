@@ -2247,6 +2247,25 @@
         </div>
       </div>
 
+      <div
+        v-if="account?.platform === 'anthropic' && account?.type === 'apikey'"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+      >
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <label class="input-label mb-0">{{ t('admin.accounts.anthropic.outboundIdentity') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.anthropic.outboundIdentityDesc') }}
+            </p>
+          </div>
+          <select v-model="anthropicOutboundIdentity" class="input w-52 text-sm">
+            <option value="client">{{ t('admin.accounts.anthropic.outboundIdentityClient') }}</option>
+            <option value="hermes_agent">{{ t('admin.accounts.anthropic.outboundIdentityHermes') }}</option>
+            <option value="plain">{{ t('admin.accounts.anthropic.outboundIdentityPlain') }}</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Anthropic API Key: Web Search Emulation (hidden when global disabled) -->
       <div
         v-if="account?.platform === 'anthropic' && account?.type === 'apikey' && webSearchGlobalEnabled"
@@ -3863,6 +3882,7 @@ const codexImageToolMode = ref<CodexImageToolMode>('inherit')
 type AnthropicAPIKeyAuthScheme = 'x_api_key' | 'authorization_bearer'
 const anthropicPassthroughEnabled = ref(false)
 const anthropicAPIKeyAuthScheme = ref<AnthropicAPIKeyAuthScheme>('x_api_key')
+const anthropicOutboundIdentity = ref<'client' | 'hermes_agent' | 'plain'>('client')
 const webSearchEmulationMode = ref('default')
 const webSearchGlobalEnabled = ref(false)
 const {
@@ -4357,6 +4377,10 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   codexImageToolMode.value = 'inherit'
   anthropicPassthroughEnabled.value = false
   anthropicAPIKeyAuthScheme.value = 'x_api_key'
+  anthropicOutboundIdentity.value =
+    extra?.outbound_identity === 'hermes_agent' || extra?.outbound_identity === 'plain'
+      ? extra.outbound_identity
+      : 'client'
   webSearchEmulationMode.value = 'default'
   if (newAccount.platform === 'openai' && (newAccount.type === 'oauth' || newAccount.type === 'setup-token' || newAccount.type === 'apikey')) {
     openaiPassthroughEnabled.value = extra?.openai_passthrough === true || extra?.openai_oauth_passthrough === true
@@ -5875,6 +5899,11 @@ const handleSubmit = async () => {
         newExtra.anthropic_apikey_auth_scheme = 'authorization_bearer'
       } else {
         delete newExtra.anthropic_apikey_auth_scheme
+      }
+      if (anthropicOutboundIdentity.value === 'client') {
+        delete newExtra.outbound_identity
+      } else {
+        newExtra.outbound_identity = anthropicOutboundIdentity.value
       }
       if (webSearchEmulationMode.value === 'default') {
         delete newExtra.web_search_emulation

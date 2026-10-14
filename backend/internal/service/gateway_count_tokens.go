@@ -445,7 +445,7 @@ func (s *GatewayService) buildCountTokensRequestAnthropicAPIKeyPassthrough(
 	req.Header.Del("x-goog-api-key")
 	req.Header.Del("cookie")
 	// Ollama Cloud Anthropic 兼容端点按实际 base_url 强制 Bearer（同上方
-	// targetURL 的 base 取值），其余保持 extra/default 行为。
+	// targetURL 的取值），其余保持 extra/default 行为。
 	setAnthropicAPIKeyAuthHeader(req.Header, account, token, account.GetBaseURL())
 
 	if req.Header.Get("content-type") == "" {
@@ -453,6 +453,11 @@ func (s *GatewayService) buildCountTokensRequestAnthropicAPIKeyPassthrough(
 	}
 	if req.Header.Get("anthropic-version") == "" {
 		req.Header.Set("anthropic-version", "2023-06-01")
+	}
+
+	// api_key 出站身份改写（hermes_agent / plain）：与 messages passthrough 同语义。
+	if identity := account.GetOutboundIdentity(); identity != OutboundIdentityClient {
+		applyAnthropicOutboundIdentityHeaders(identity, req.Header)
 	}
 
 	// 账号级请求头覆写（最终生效，覆盖上面所有来源的同名头）

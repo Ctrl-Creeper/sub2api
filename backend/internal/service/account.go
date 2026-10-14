@@ -2305,6 +2305,37 @@ func (a *Account) IsAnthropicAPIKeyPassthroughEnabled() bool {
 	return ok && enabled
 }
 
+// 出站身份（accounts.extra.outbound_identity）：
+//   - client（缺省）：现状——白名单透传客户端请求头；
+//   - hermes_agent：出站统一改写为 Hermes Agent / Anthropic Python SDK 指纹，
+//     并剥离 Claude Code 客户端特征头与 body 中的 metadata；
+//   - plain：仅剥离 Claude Code 特征，不注入替代身份（朴素 JSON 客户端）。
+const (
+	OutboundIdentityClient = "client"
+	OutboundIdentityHermes = "hermes_agent"
+	OutboundIdentityPlain  = "plain"
+)
+
+// GetOutboundIdentity 返回 Anthropic API Key 账号的出站身份。
+// 非目标平台返回 client（现状语义），字段缺失或非法值同样回退 client。
+func (a *Account) GetOutboundIdentity() string {
+	if a == nil || a.Platform != PlatformAnthropic || a.Type != AccountTypeAPIKey {
+		return OutboundIdentityClient
+	}
+	v := strings.TrimSpace(a.getExtraString("outbound_identity"))
+	switch v {
+	case OutboundIdentityHermes, OutboundIdentityPlain:
+		return v
+	default:
+		return OutboundIdentityClient
+	}
+}
+
+// UsesOutboundIdentityRewrite 报告是否需要执行出站身份改写（非 client 即需要）。
+func (a *Account) UsesOutboundIdentityRewrite() bool {
+	return a.GetOutboundIdentity() != OutboundIdentityClient
+}
+
 // WebSearch 模拟三态常量
 const (
 	WebSearchModeDefault  = "default"  // 跟随渠道配置

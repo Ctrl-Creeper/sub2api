@@ -589,12 +589,15 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 	c.Writer.Flush()
 
 	// 朴素模式仅对 api_key 账号生效；OAuth / service_account 保持 CC 伪装。
-	plainRequest := plainAPIKey && account.Type == AccountTypeAPIKey
+	// 账号配置了 outbound_identity=hermes_agent 时，测试连接也改用 Hermes 指纹，
+	// 保持“测试请求与真实转发同一形态”的既有原则。
+	plainRequest := (plainAPIKey || account.GetOutboundIdentity() == OutboundIdentityPlain) && account.Type == AccountTypeAPIKey
+	hermesIdentity := account.GetOutboundIdentity() == OutboundIdentityHermes && account.Type == AccountTypeAPIKey
 
-	// Create payload (plain JSON for plain mode, Claude Code style otherwise)
+	// Create payload (plain JSON for plain/hermes mode, Claude Code style otherwise)
 	var payload map[string]any
 	var err error
-	if plainRequest {
+	if plainRequest || hermesIdentity {
 		payload, err = createPlainTestPayload(testModelID)
 	} else {
 		payload, err = createTestPayload(testModelID)
@@ -616,8 +619,13 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	// Apply Claude Code client headers (skipped in plain mode)
-	if !plainRequest {
+	// Apply client identity headers
+	if hermesIdentity {
+		// Hermes 指纹：Anthropic Python SDK 头集 + Hermes 的 beta 两项。
+		for key, value := range claude.HermesHeaders() {
+			req.Header.Set(key, value)
+		}
+	} else if !plainRequest {
 		for key, value := range claude.DefaultHeaders() {
 			req.Header.Set(key, value)
 		}
@@ -632,6 +640,8 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 		req.Header.Set("Authorization", "Bearer "+authToken)
 	} else if plainRequest {
 		// 朴素模式不携带 anthropic-beta（无 claude-code / oauth token）
+		setAnthropicAPIKeyAuthHeader(req.Header, account, authToken, account.GetBaseURL())
+	} else if hermesIdentity {
 		setAnthropicAPIKeyAuthHeader(req.Header, account, authToken, account.GetBaseURL())
 	} else {
 		req.Header.Set("anthropic-beta", claude.APIKeyBetaHeader)

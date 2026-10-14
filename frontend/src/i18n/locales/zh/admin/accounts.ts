@@ -914,6 +914,12 @@ export default {
         noResponseBody: '服务器未返回响应体'
       },
       anthropic: {
+        outboundIdentity: '出站身份',
+        outboundIdentityDesc:
+          '控制转发到上游时的客户端身份。默认透传客户端请求头；Hermes Agent 将出站统一改写为 Anthropic Python SDK 指纹（剥掉 Claude Code 特征头与 metadata）；朴素仅剥离 Claude Code 特征。',
+        outboundIdentityClient: '透传客户端（默认）',
+        outboundIdentityHermes: 'Hermes Agent（Python SDK 指纹）',
+        outboundIdentityPlain: '朴素（剥离特征）',
         apiKeyPassthrough: '自动透传（仅替换认证）',
         apiKeyPassthroughDesc:
           '仅对 Anthropic API Key 生效。开启后，messages/count_tokens 请求将透传上游并仅替换认证，保留计费/并发/审计及必要安全过滤；关闭即可回滚到现有兼容链路。',

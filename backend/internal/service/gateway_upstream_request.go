@@ -94,6 +94,14 @@ func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Contex
 		body = syncBillingHeaderVersion(body, billingUA)
 	}
 
+	// api_key 账号出站身份改写（hermes_agent / plain）：body 层（剥 metadata）
+	// 在 beta 计算前完成；header 层在 NewRequest 后的白名单透传之后执行
+	// （见下方 applyAnthropicOutboundIdentity 调用）。
+	outboundIdentity := account.GetOutboundIdentity()
+	if outboundIdentity != OutboundIdentityClient {
+		body = applyAnthropicOutboundIdentityBody(outboundIdentity, body)
+	}
+
 	// === 计算最终 anthropic-beta header（先于 body sanitize 与 CCH 签名）===
 	//
 	// 顺序约束：
@@ -187,6 +195,13 @@ func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Contex
 	deleteHeaderAllForms(req.Header, "anthropic-beta")
 	if finalBetaShouldSet {
 		setHeaderRaw(req.Header, "anthropic-beta", finalBetaHeader)
+	}
+
+	// api_key 出站身份改写（hermes_agent / plain）：在 beta 收口后、header 覆写前，
+	// 整组替换客户端透传的身份头。hermes_agent 会覆盖刚写入的 beta（其集合是
+	// Hermes 的 _COMMON_BETAS 两项）；plain 则删除 beta。均为最终头语义。
+	if outboundIdentity != OutboundIdentityClient {
+		applyAnthropicOutboundIdentityHeaders(outboundIdentity, req.Header)
 	}
 
 	// 同步 X-Claude-Code-Session-Id 头：取 body 中已处理的 metadata.user_id 的 session_id 覆盖
