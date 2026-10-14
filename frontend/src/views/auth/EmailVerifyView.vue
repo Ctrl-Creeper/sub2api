@@ -51,6 +51,12 @@
           <p class="input-hint text-center">{{ t('auth.verificationCodeHint') }}</p>
         </div>
 
+        <RegistrationReasonField
+          v-if="isPendingOAuthFlow() && registrationReviewEnabled"
+          v-model="registrationReason"
+          :disabled="isLoading"
+        />
+
         <!-- Code Status -->
         <div
           v-if="codeSent"
@@ -184,6 +190,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'
 import Icon from '@/components/icons/Icon.vue'
+import RegistrationReasonField from '@/components/auth/RegistrationReasonField.vue'
 import TurnstileWidget from '@/components/CaptchaChallenge.vue'
 import { useAuthStore, useAppStore } from '@/stores'
 import {
@@ -191,6 +198,7 @@ import {
   getPublicSettings,
   isOAuthLoginCompletion,
   RegistrationPendingReviewError,
+  throwIfRegistrationPendingReview,
   type PendingOAuthSendVerifyCodeResponse,
   sendPendingOAuthVerifyCode,
   sendVerifyCode,
@@ -236,6 +244,8 @@ type PendingAuthSessionSummary = {
   redirect?: string
 }
 type PendingOAuthCreateAccountResponse = {
+  pending_review?: boolean
+  message?: string
   auth_result?: string
   access_token: string
   refresh_token?: string
@@ -265,6 +275,7 @@ const pendingAdoptionDecision = ref<{
 const hasRegisterData = ref<boolean>(false)
 
 // Public settings
+const registrationReviewEnabled = ref(false)
 const turnstileEnabled = ref<boolean>(false)
 const turnstileSiteKey = ref<string>('')
 const tencentCaptchaEnabled = ref<boolean>(false)
@@ -325,6 +336,18 @@ watch(validationToastMessage, (value, previousValue) => {
   }
 })
 
+watch(registrationReason, value => {
+  if (!isPendingOAuthFlow()) return
+  const storedData = sessionStorage.getItem('register_data')
+  if (!storedData) return
+  try {
+    const data = JSON.parse(storedData)
+    sessionStorage.setItem('register_data', JSON.stringify({ ...data, registration_reason: value }))
+  } catch {
+    // The lifecycle handler reports an expired or invalid registration session.
+  }
+})
+
 // ==================== Lifecycle ====================
 
 onMounted(async () => {
@@ -368,6 +391,7 @@ onMounted(async () => {
   // Load public settings
   try {
     const settings = await getPublicSettings()
+    registrationReviewEnabled.value = settings.registration_review_enabled === true
     turnstileEnabled.value = settings.turnstile_enabled
     turnstileSiteKey.value = settings.turnstile_site_key || ''
     tencentCaptchaEnabled.value = settings.tencent_captcha_enabled === true
@@ -671,6 +695,11 @@ async function handleVerify(): Promise<void> {
     return
   }
 
+  if (isPendingOAuthFlow() && registrationReviewEnabled.value && (!registrationReason.value.trim() || registrationReason.value.trim().length > 500)) {
+    errorMessage.value = t(registrationReason.value.trim() ? 'auth.registrationReasonTooLong' : 'auth.registrationReasonRequired')
+    return
+  }
+
   if (!(await acquireCreateAccountActionProof())) {
     return
   }
@@ -683,6 +712,7 @@ async function handleVerify(): Promise<void> {
         email: email.value,
         password: password.value,
         verify_code: verifyCode.value.trim(),
+        ...(registrationReason.value.trim() ? { registration_reason: registrationReason.value.trim() } : {}),
         ...((turnstileEnabled.value || aliyunCaptchaEnabled.value) &&
         createAccountTurnstileToken.value
           ? { turnstile_token: createAccountTurnstileToken.value }
@@ -709,6 +739,7 @@ async function handleVerify(): Promise<void> {
         '/auth/oauth/pending/create-account',
         payload
       )
+      throwIfRegistrationPendingReview(data)
       if (isPendingOAuthSessionResponse(data)) {
         sessionStorage.removeItem('register_data')
         persistPendingOAuthSession(data.provider || pendingProvider.value, data.redirect)
@@ -753,6 +784,8 @@ async function handleVerify(): Promise<void> {
   } catch (error: unknown) {
     // 注册审核：注册已提交待审核，引导到登录页等待管理员通过。
     if (isRegistrationPendingReviewError(error)) {
+      authStore.clearPendingAuthSession?.()
+      clearAllAffiliateReferralCodes()
       sessionStorage.removeItem('register_data')
       appStore.showSuccess(t('auth.registrationPendingReviewSuccess'))
       await router.push('/login')

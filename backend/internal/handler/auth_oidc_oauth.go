@@ -605,10 +605,11 @@ func (h *AuthHandler) createOIDCOAuthChoicePendingSession(
 }
 
 type completeOIDCOAuthRequest struct {
-	InvitationCode   string `json:"invitation_code" binding:"required"`
-	AffCode          string `json:"aff_code,omitempty"`
-	AdoptDisplayName *bool  `json:"adopt_display_name,omitempty"`
-	AdoptAvatar      *bool  `json:"adopt_avatar,omitempty"`
+	InvitationCode     string `json:"invitation_code,omitempty"`
+	RegistrationReason string `json:"registration_reason,omitempty"`
+	AffCode            string `json:"aff_code,omitempty"`
+	AdoptDisplayName   *bool  `json:"adopt_display_name,omitempty"`
+	AdoptAvatar        *bool  `json:"adopt_avatar,omitempty"`
 }
 
 // CompleteOIDCOAuthRegistration completes a pending OAuth registration by validating
@@ -698,18 +699,26 @@ func (h *AuthHandler) CompleteOIDCOAuthRegistration(c *gin.Context) {
 		req.AffCode,
 		pendingOAuthPromoCode(session),
 		"oidc",
+		req.RegistrationReason,
 	)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
-	if err := applyPendingOAuthAdoptionAndConsumeSession(c.Request.Context(), client, h.authService, h.userService, session, decision, user.ID); err != nil {
+	if err := applyPendingOAuthAdoptionAndConsumeSession(c.Request.Context(), client, h.authService, h.userService, session, decision, user.ID, tokenPair == nil && user.Status == service.StatusPending); err != nil {
+		if h.rollbackPendingOAuthRegistration(c, user, req.InvitationCode, err) {
+			return
+		}
 		respondPendingOAuthBindingApplyError(c, err)
 		return
 	}
-	h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
 	clearOAuthPendingSessionCookie(c, secureCookie)
 	clearOAuthPendingBrowserCookie(c, secureCookie)
+
+	if writeOAuthPendingReviewResponse(c, user) {
+		return
+	}
+	h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  tokenPair.AccessToken,

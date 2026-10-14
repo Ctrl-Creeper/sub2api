@@ -329,7 +329,7 @@ func (h *AuthHandler) LinuxDoOAuthCallback(c *gin.Context) {
 	}
 	emailVerificationRequired := h != nil && h.authService != nil && h.authService.IsEmailVerifyEnabled(c.Request.Context())
 	forceEmailOnSignup := h.isForceEmailOnThirdPartySignup(c.Request.Context())
-	if compatEmailUser == nil && !emailVerificationRequired && !forceEmailOnSignup {
+	if compatEmailUser == nil && !emailVerificationRequired && !forceEmailOnSignup && !h.isOAuthRegistrationReviewEnabled(c.Request.Context()) {
 		if err := h.ensureBackendModeAllowsNewUserLogin(c.Request.Context()); err != nil {
 			redirectOAuthError(c, frontendCallback, "session_error", infraerrors.Reason(err), infraerrors.Message(err))
 			return
@@ -502,10 +502,11 @@ func (h *AuthHandler) createLinuxDoOAuthChoicePendingSession(
 }
 
 type completeLinuxDoOAuthRequest struct {
-	InvitationCode   string `json:"invitation_code" binding:"required"`
-	AffCode          string `json:"aff_code,omitempty"`
-	AdoptDisplayName *bool  `json:"adopt_display_name,omitempty"`
-	AdoptAvatar      *bool  `json:"adopt_avatar,omitempty"`
+	InvitationCode     string `json:"invitation_code,omitempty"`
+	RegistrationReason string `json:"registration_reason,omitempty"`
+	AffCode            string `json:"aff_code,omitempty"`
+	AdoptDisplayName   *bool  `json:"adopt_display_name,omitempty"`
+	AdoptAvatar        *bool  `json:"adopt_avatar,omitempty"`
 }
 
 // CompleteLinuxDoOAuthRegistration completes a pending OAuth registration by validating
@@ -595,18 +596,26 @@ func (h *AuthHandler) CompleteLinuxDoOAuthRegistration(c *gin.Context) {
 		req.AffCode,
 		pendingOAuthPromoCode(session),
 		"linuxdo",
+		req.RegistrationReason,
 	)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
-	if err := applyPendingOAuthAdoptionAndConsumeSession(c.Request.Context(), client, h.authService, h.userService, session, decision, user.ID); err != nil {
+	if err := applyPendingOAuthAdoptionAndConsumeSession(c.Request.Context(), client, h.authService, h.userService, session, decision, user.ID, tokenPair == nil && user.Status == service.StatusPending); err != nil {
+		if h.rollbackPendingOAuthRegistration(c, user, req.InvitationCode, err) {
+			return
+		}
 		respondPendingOAuthBindingApplyError(c, err)
 		return
 	}
-	h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
 	clearOAuthPendingSessionCookie(c, secureCookie)
 	clearOAuthPendingBrowserCookie(c, secureCookie)
+
+	if writeOAuthPendingReviewResponse(c, user) {
+		return
+	}
+	h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  tokenPair.AccessToken,
