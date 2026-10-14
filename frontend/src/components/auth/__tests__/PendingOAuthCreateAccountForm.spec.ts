@@ -51,6 +51,37 @@ describe('PendingOAuthCreateAccountForm', () => {
     })
   })
 
+  it('requires a trimmed reason only when signup review is enabled', async () => {
+    getPublicSettings.mockResolvedValue({ registration_review_enabled: true, email_verify_enabled: false })
+    const wrapper = mount(PendingOAuthCreateAccountForm, {
+      props: { testIdPrefix: 'oidc', initialEmail: 'user@example.com', isSubmitting: false },
+      global: { stubs: { TurnstileWidget: true } }
+    })
+    await flushPromises()
+    await wrapper.get('input[type="password"]').setValue('secret-123')
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    await wrapper.get('textarea').setValue(' Research project ')
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({ registrationReason: 'Research project' })
+    wrapper.unmount()
+  })
+
+  it('prevents reasons longer than 500 characters from implicit form submission', async () => {
+    getPublicSettings.mockResolvedValue({ registration_review_enabled: true, email_verify_enabled: false })
+    const wrapper = mount(PendingOAuthCreateAccountForm, {
+      props: { testIdPrefix: 'oidc', initialEmail: 'user@example.com', isSubmitting: false },
+      global: { stubs: { TurnstileWidget: true } }
+    })
+    await flushPromises()
+    await wrapper.get('input[type="password"]').setValue('secret-123')
+    await wrapper.get('textarea').setValue('x'.repeat(501))
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    expect(showError).toHaveBeenCalledWith('auth.registrationReasonTooLong')
+    wrapper.unmount()
+  })
+
   it('does not restart the code cooldown after switching away during a send', async () => {
     vi.useFakeTimers()
     let finish!: (value: { countdown: number }) => void

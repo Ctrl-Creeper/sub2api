@@ -645,6 +645,7 @@
               <button
                 v-if="row.role !== 'admin'"
                 @click="handleToggleStatus(row)"
+                :disabled="statusUpdating.has(row.id)"
                 :class="[
                   'flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors',
                   row.status === 'active'
@@ -663,6 +664,16 @@
                         : t('admin.users.enable')
                   }}
                 </span>
+              </button>
+
+              <button
+                v-if="row.role !== 'admin' && row.status === 'pending'"
+                @click="updateUserStatus(row, 'disabled')"
+                :disabled="statusUpdating.has(row.id)"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-50 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+              >
+                <Icon name="ban" size="sm" />
+                <span class="text-xs">{{ t('admin.users.reviewReject') }}</span>
               </button>
 
               <!-- More Actions Menu Trigger -->
@@ -1068,6 +1079,7 @@ const columns = computed<Column[]>(() =>
 )
 
 const users = ref<AdminUser[]>([])
+const statusUpdating = reactive(new Set<number>())
 const loading = ref(false)
 const searchQuery = ref('')
 const USER_SORT_STORAGE_KEY = 'admin-users-table-sort'
@@ -1772,10 +1784,19 @@ const closeEditModal = () => {
 
 const handleToggleStatus = async (user: AdminUser) => {
   const newStatus = user.status === 'active' ? 'disabled' : 'active'
+  await updateUserStatus(user, newStatus)
+}
+
+const updateUserStatus = async (user: AdminUser, newStatus: 'active' | 'disabled') => {
+  if (statusUpdating.has(user.id)) return
+  statusUpdating.add(user.id)
+  const reviewing = user.status === 'pending'
   try {
     const updated = await adminAPI.users.toggleStatus(user.id, newStatus)
     appStore.showSuccess(
-      newStatus === 'active' ? t('admin.users.userEnabled') : t('admin.users.userDisabled')
+      reviewing
+        ? t(newStatus === 'active' ? 'admin.users.reviewApproved' : 'admin.users.reviewRejected')
+        : t(newStatus === 'active' ? 'admin.users.userEnabled' : 'admin.users.userDisabled')
     )
     if (loading.value) {
       // 与本次更新并发的列表请求可能读到更新前的状态，重新拉取保证一致。
@@ -1791,6 +1812,8 @@ const handleToggleStatus = async (user: AdminUser) => {
   } catch (error: any) {
     appStore.showError(error.response?.data?.detail || t('admin.users.failedToToggle'))
     console.error('Error toggling user status:', error)
+  } finally {
+    statusUpdating.delete(user.id)
   }
 }
 

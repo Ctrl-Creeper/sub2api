@@ -76,11 +76,17 @@
       :placeholder="t('auth.invitationCodePlaceholder')"
       :disabled="isSubmitting"
     />
+    <RegistrationReasonField
+      v-if="registrationReviewEnabled"
+      v-model="registrationReason"
+      :id="`${testIdPrefix}-create-account-registration-reason`"
+      :disabled="isSubmitting"
+    />
     <button
       :data-testid="`${testIdPrefix}-create-account-submit`"
       type="button"
       class="btn btn-primary w-full"
-      :disabled="isSubmitting || !email.trim() || password.length < 6 || (invitationCodeEnabled && !invitationCode.trim()) || (turnstileEnabled && !turnstileToken)"
+      :disabled="isSubmitting || !email.trim() || password.length < 6 || (registrationReviewEnabled && (!registrationReason.trim() || registrationReason.trim().length > 500)) || (invitationCodeEnabled && !invitationCode.trim()) || (turnstileEnabled && !turnstileToken)"
       @click="handleSubmit"
     >
       {{ isSubmitting ? t('common.processing') : t('auth.createAccount') }}
@@ -99,6 +105,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import RegistrationReasonField from './RegistrationReasonField.vue'
 import TurnstileWidget from '@/components/CaptchaChallenge.vue'
 import { getPublicSettings, sendPendingOAuthVerifyCode } from '@/api/auth'
 import { useAppStore } from '@/stores'
@@ -111,6 +118,7 @@ export type PendingOAuthCreateAccountPayload = {
   tencentCaptchaTicket?: string
   tencentCaptchaRandstr?: string
   invitationCode?: string
+  registrationReason?: string
 }
 
 const props = defineProps<{
@@ -118,6 +126,7 @@ const props = defineProps<{
   testIdPrefix: string
   isSubmitting: boolean
   errorMessage?: string
+  registrationReviewEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -132,6 +141,9 @@ const email = ref('')
 const password = ref('')
 const verifyCode = ref('')
 const invitationCode = ref('')
+const registrationReason = ref('')
+const publicRegistrationReviewEnabled = ref(false)
+const registrationReviewEnabled = computed(() => props.registrationReviewEnabled === true || publicRegistrationReviewEnabled.value)
 const isSendingCode = ref(false)
 const sendCodeError = ref('')
 const sendCodeSuccess = ref(false)
@@ -308,6 +320,11 @@ async function handleSubmit() {
     return
   }
 
+  if (registrationReviewEnabled.value && (!registrationReason.value.trim() || registrationReason.value.trim().length > 500)) {
+    sendCodeError.value = t(registrationReason.value.trim() ? 'auth.registrationReasonTooLong' : 'auth.registrationReasonRequired')
+    return
+  }
+
   // Turnstile 票据一次性：发送验证码已消耗上一枚，reset 后要等新票据回调。
   // 缺票时不能提交——create-account 端点会校验验证码，空 token 直接被判失败。
   // 表单的隐式提交（输入框回车）绕得过按钮的 disabled，所以这里必须再挡一次。
@@ -333,6 +350,7 @@ async function handleSubmit() {
           tencentCaptchaRandstr: tencentCaptchaRandstr.value
         }
       : {}),
+    ...(registrationReviewEnabled.value ? { registrationReason: registrationReason.value.trim() } : {}),
     invitationCode: invitationCode.value.trim() || undefined
   })
 
@@ -348,6 +366,7 @@ function emitSwitchToBind() {
 onMounted(async () => {
   try {
     const settings = await getPublicSettings()
+    publicRegistrationReviewEnabled.value = settings.registration_review_enabled === true
     invitationCodeEnabled.value = settings.invitation_code_enabled === true
     emailVerifyEnabled.value = settings.email_verify_enabled !== false
     turnstileEnabled.value = settings.turnstile_enabled === true

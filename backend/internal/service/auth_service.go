@@ -42,9 +42,9 @@ var (
 		"EMAIL_DOMAIN_REGISTRATION_LIMIT",
 		"this email domain cannot register another account; use a mainstream email or contact support to add the enterprise domain",
 	)
-	ErrRegDisabled             = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
+	ErrRegDisabled = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
 	// ErrRegistrationPending 注册审核开启时注册成功但尚未审核，不能发放登录凭证。
-	ErrRegistrationPending = infraerrors.Forbidden("REGISTRATION_PENDING", "registration submitted and pending admin review")
+	ErrRegistrationPending     = infraerrors.Forbidden("REGISTRATION_PENDING", "registration submitted and pending admin review")
 	ErrServiceUnavailable      = infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "service temporarily unavailable")
 	ErrInvitationCodeRequired  = infraerrors.BadRequest("INVITATION_CODE_REQUIRED", "invitation code is required")
 	ErrInvitationCodeInvalid   = infraerrors.BadRequest("INVITATION_CODE_INVALID", "invalid or used invitation code")
@@ -168,6 +168,11 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 		return "", nil, ErrRegDisabled
 	}
 
+	status, registrationReason, err := s.resolveRegistrationStatus(ctx, registrationReason)
+	if err != nil {
+		return "", nil, err
+	}
+
 	// 防止用户注册 LinuxDo OAuth 合成邮箱，避免第三方登录与本地账号发生碰撞。
 	if isReservedEmail(email) {
 		return "", nil, ErrEmailReserved
@@ -237,11 +242,6 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	}
 
 	// 创建用户
-	status := StatusActive
-	registrationReviewEnabled := s.settingService != nil && s.settingService.IsRegistrationReviewEnabled(ctx)
-	if registrationReviewEnabled {
-		status = StatusPending
-	}
 	user := &User{
 		Email:              email,
 		PasswordHash:       hashedPassword,
@@ -250,7 +250,7 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 		Concurrency:        grantPlan.Concurrency,
 		RPMLimit:           defaultRPMLimit,
 		Status:             status,
-		RegistrationReason:  strings.TrimSpace(registrationReason),
+		RegistrationReason: registrationReason,
 	}
 
 	if err := s.createUserAndClaimInvitation(ctx, user, invitationRedeemCode); err != nil {
@@ -586,7 +586,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 //
 // 注意：该函数用于 LinuxDo OAuth 登录场景（不同于上游账号的 OAuth，例如 Claude/OpenAI/Gemini）。
 // 为了满足现有数据库约束（需要密码哈希），新用户会生成随机密码并进行哈希保存。
-func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username string) (string, *User, error) {
+func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username string, registrationReason ...string) (string, *User, error) {
 	email = strings.TrimSpace(email)
 	if email == "" || len(email) > 255 {
 		return "", nil, infraerrors.BadRequest("INVALID_EMAIL", "invalid email")
@@ -600,12 +600,18 @@ func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username 
 		username = string([]rune(username)[:100])
 	}
 
+	created := false
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			// OAuth 首次登录视为注册（fail-close：settingService 未配置时不允许注册）
 			if s.settingService == nil || !s.settingService.IsRegistrationEnabled(ctx) {
 				return "", nil, ErrRegDisabled
+			}
+
+			status, reason, err := s.resolveRegistrationStatus(ctx, firstRegistrationReason(registrationReason))
+			if err != nil {
+				return "", nil, err
 			}
 
 			randomPassword, err := randomHexString(32)
@@ -626,15 +632,16 @@ func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username 
 			}
 
 			newUser := &User{
-				Email:        email,
-				Username:     username,
-				PasswordHash: hashedPassword,
-				Role:         RoleUser,
-				Balance:      grantPlan.Balance,
-				Concurrency:  grantPlan.Concurrency,
-				RPMLimit:     defaultRPMLimit,
-				Status:       StatusActive,
-				SignupSource: signupSource,
+				Email:              email,
+				Username:           username,
+				PasswordHash:       hashedPassword,
+				Role:               RoleUser,
+				Balance:            grantPlan.Balance,
+				Concurrency:        grantPlan.Concurrency,
+				RPMLimit:           defaultRPMLimit,
+				Status:             status,
+				RegistrationReason: reason,
+				SignupSource:       signupSource,
 			}
 
 			if err := s.userRepo.Create(ctx, newUser); err != nil {
@@ -651,6 +658,7 @@ func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username 
 				}
 			} else {
 				user = newUser
+				created = true
 				s.postAuthUserBootstrap(ctx, user, signupSource, false)
 				s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
 				// snapshot user × platform quota（fail-open）
@@ -662,8 +670,11 @@ func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username 
 		}
 	}
 
-	if !user.IsActive() {
-		return "", nil, ErrUserNotActive
+	if created && user.Status == StatusPending {
+		return "", user, nil
+	}
+	if err := activeUserError(user); err != nil {
+		return "", nil, err
 	}
 
 	// 尽力补全：当用户名为空时，使用第三方返回的用户名回填。
@@ -698,23 +709,18 @@ func (s *AuthService) canBypassRegistrationDisabledForOAuth(ctx context.Context,
 // invitationCode 仅在邀请码注册模式下新用户注册时使用；已有账号登录时忽略。
 // affiliateCode 用于邀请返利绑定，仅在新用户注册时使用。
 // signupSource 标识来源渠道（"dingtalk"/"linuxdo"/"wechat"/"oidc" 等），仅用于豁免检查。
-func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, email, username, invitationCode, affiliateCode, signupSource string) (*TokenPair, *User, error) {
-	return s.loginOrRegisterOAuthWithTokenPair(ctx, email, username, invitationCode, affiliateCode, "", signupSource)
+func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, email, username, invitationCode, affiliateCode, signupSource string, registrationReason ...string) (*TokenPair, *User, error) {
+	return s.loginOrRegisterOAuthWithTokenPair(ctx, email, username, invitationCode, affiliateCode, "", signupSource, firstRegistrationReason(registrationReason))
 }
 
 // LoginOrRegisterOAuthWithTokenPairAndPromoCode behaves like
 // LoginOrRegisterOAuthWithTokenPair and applies promoCode only when a new user
 // is created.
-func (s *AuthService) LoginOrRegisterOAuthWithTokenPairAndPromoCode(ctx context.Context, email, username, invitationCode, affiliateCode, promoCode, signupSource string) (*TokenPair, *User, error) {
-	return s.loginOrRegisterOAuthWithTokenPair(ctx, email, username, invitationCode, affiliateCode, promoCode, signupSource)
+func (s *AuthService) LoginOrRegisterOAuthWithTokenPairAndPromoCode(ctx context.Context, email, username, invitationCode, affiliateCode, promoCode, signupSource string, registrationReason ...string) (*TokenPair, *User, error) {
+	return s.loginOrRegisterOAuthWithTokenPair(ctx, email, username, invitationCode, affiliateCode, promoCode, signupSource, firstRegistrationReason(registrationReason))
 }
 
-func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, email, username, invitationCode, affiliateCode, promoCode, signupSource string) (*TokenPair, *User, error) {
-	// 检查 refreshTokenCache 是否可用
-	if s.refreshTokenCache == nil {
-		return nil, nil, errors.New("refresh token cache not configured")
-	}
-
+func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, email, username, invitationCode, affiliateCode, promoCode, signupSource, registrationReason string) (*TokenPair, *User, error) {
 	email = strings.TrimSpace(email)
 	if email == "" || len(email) > 255 {
 		return nil, nil, infraerrors.BadRequest("INVALID_EMAIL", "invalid email")
@@ -735,6 +741,11 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 			// OAuth 首次登录视为注册
 			if s.settingService == nil || (!s.settingService.IsRegistrationEnabled(ctx) && !s.canBypassRegistrationDisabledForOAuth(ctx, signupSource)) {
 				return nil, nil, ErrRegDisabled
+			}
+
+			status, reason, err := s.resolveRegistrationStatus(ctx, registrationReason)
+			if err != nil {
+				return nil, nil, err
 			}
 
 			// 检查是否需要邀请码
@@ -775,15 +786,16 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 			}
 
 			newUser := &User{
-				Email:        email,
-				Username:     username,
-				PasswordHash: hashedPassword,
-				Role:         RoleUser,
-				Balance:      grantPlan.Balance,
-				Concurrency:  grantPlan.Concurrency,
-				RPMLimit:     defaultRPMLimit,
-				Status:       StatusActive,
-				SignupSource: signupSource,
+				Email:              email,
+				Username:           username,
+				PasswordHash:       hashedPassword,
+				Role:               RoleUser,
+				Balance:            grantPlan.Balance,
+				Concurrency:        grantPlan.Concurrency,
+				RPMLimit:           defaultRPMLimit,
+				Status:             status,
+				RegistrationReason: reason,
+				SignupSource:       signupSource,
 			}
 
 			if s.entClient != nil && invitationRedeemCode != nil {
@@ -855,8 +867,10 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 		}
 	}
 
-	if !user.IsActive() {
-		return nil, nil, ErrUserNotActive
+	if !created {
+		if err := activeUserError(user); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	if user.Username == "" && username != "" {
@@ -867,6 +881,9 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 	}
 	if created {
 		user = s.applyOAuthSignupPromoCode(ctx, user, promoCode)
+	}
+	if created && user.Status == StatusPending {
+		return nil, user, nil
 	}
 	tokenPair, err := s.GenerateTokenPair(ctx, user, "")
 	if err != nil {
@@ -1426,6 +1443,9 @@ func isReservedEmail(email string) bool {
 // 使用新的access_token_expire_minutes配置项（如果配置了），否则回退到expire_hour。
 // 会话指纹（IP/UA）从 ctx 中提取（由 HTTP 入口中间件注入），缺失时生成不带绑定的 token。
 func (s *AuthService) GenerateToken(ctx context.Context, user *User) (string, error) {
+	if err := activeUserError(user); err != nil {
+		return "", err
+	}
 	sessionID, err := randomHexString(8)
 	if err != nil {
 		return "", fmt.Errorf("generate session id: %w", err)
@@ -1704,6 +1724,9 @@ type TokenPairWithUser struct {
 // GenerateTokenPair 生成Access Token和Refresh Token对
 // familyID: 可选的Token家族ID，用于Token轮转时保持家族关系
 func (s *AuthService) GenerateTokenPair(ctx context.Context, user *User, familyID string) (*TokenPair, error) {
+	if err := activeUserError(user); err != nil {
+		return nil, err
+	}
 	// 检查 refreshTokenCache 是否可用
 	if s.refreshTokenCache == nil {
 		return nil, errors.New("refresh token cache not configured")
