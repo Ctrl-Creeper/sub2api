@@ -43,6 +43,8 @@ var (
 		"this email domain cannot register another account; use a mainstream email or contact support to add the enterprise domain",
 	)
 	ErrRegDisabled             = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
+	// ErrRegistrationPending 注册审核开启时注册成功但尚未审核，不能发放登录凭证。
+	ErrRegistrationPending = infraerrors.Forbidden("REGISTRATION_PENDING", "registration submitted and pending admin review")
 	ErrServiceUnavailable      = infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "service temporarily unavailable")
 	ErrInvitationCodeRequired  = infraerrors.BadRequest("INVITATION_CODE_REQUIRED", "invitation code is required")
 	ErrInvitationCodeInvalid   = infraerrors.BadRequest("INVITATION_CODE_INVALID", "invalid or used invitation code")
@@ -156,11 +158,11 @@ func (s *AuthService) SetAliyunCaptchaService(aliyunCaptchaService *AliyunCaptch
 
 // Register 用户注册，返回token和用户
 func (s *AuthService) Register(ctx context.Context, email, password string) (string, *User, error) {
-	return s.RegisterWithVerification(ctx, email, password, "", "", "", "")
+	return s.RegisterWithVerification(ctx, email, password, "", "", "", "", "")
 }
 
 // RegisterWithVerification 用户注册（支持邮件验证、优惠码、邀请码和邀请返利码），返回token和用户。
-func (s *AuthService) RegisterWithVerification(ctx context.Context, email, password, verifyCode, promoCode, invitationCode, affiliateCode string) (string, *User, error) {
+func (s *AuthService) RegisterWithVerification(ctx context.Context, email, password, verifyCode, promoCode, invitationCode, affiliateCode, registrationReason string) (string, *User, error) {
 	// 检查是否开放注册（默认关闭：settingService 未配置时不允许注册）
 	if s.settingService == nil || !s.settingService.IsRegistrationEnabled(ctx) {
 		return "", nil, ErrRegDisabled
@@ -235,14 +237,20 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	}
 
 	// 创建用户
+	status := StatusActive
+	registrationReviewEnabled := s.settingService != nil && s.settingService.IsRegistrationReviewEnabled(ctx)
+	if registrationReviewEnabled {
+		status = StatusPending
+	}
 	user := &User{
-		Email:        email,
-		PasswordHash: hashedPassword,
-		Role:         RoleUser,
-		Balance:      grantPlan.Balance,
-		Concurrency:  grantPlan.Concurrency,
-		RPMLimit:     defaultRPMLimit,
-		Status:       StatusActive,
+		Email:              email,
+		PasswordHash:       hashedPassword,
+		Role:               RoleUser,
+		Balance:            grantPlan.Balance,
+		Concurrency:        grantPlan.Concurrency,
+		RPMLimit:           defaultRPMLimit,
+		Status:             status,
+		RegistrationReason:  strings.TrimSpace(registrationReason),
 	}
 
 	if err := s.createUserAndClaimInvitation(ctx, user, invitationRedeemCode); err != nil {
@@ -288,6 +296,11 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 				user = updatedUser
 			}
 		}
+	}
+
+	// 注册审核：待审核用户不发放登录凭证，等待管理员通过后方可登录。
+	if user.Status == StatusPending {
+		return "", user, ErrRegistrationPending
 	}
 
 	// 生成token
@@ -551,6 +564,10 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 
 	// 检查用户状态
 	if !user.IsActive() {
+		// 待审核用户返回更明确的错误，便于前端提示“等待管理员审核”。
+		if user.Status == StatusPending {
+			return "", nil, ErrRegistrationPending
+		}
 		return "", nil, ErrUserNotActive
 	}
 

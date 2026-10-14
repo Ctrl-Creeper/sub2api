@@ -190,6 +190,7 @@ import {
   persistOAuthTokenContext,
   getPublicSettings,
   isOAuthLoginCompletion,
+  RegistrationPendingReviewError,
   type PendingOAuthSendVerifyCodeResponse,
   sendPendingOAuthVerifyCode,
   sendVerifyCode,
@@ -250,6 +251,8 @@ const initialTurnstileToken = ref<string>('')
 const initialTencentCaptchaRandstr = ref<string>('')
 const promoCode = ref<string>('')
 const invitationCode = ref<string>('')
+// 注册审核：注册页暂存的申请理由，随验证码一起提交。
+const registrationReason = ref<string>('')
 const affCode = ref<string>('')
 const pendingAuthToken = ref<string>('')
 const pendingAuthTokenField = ref<PendingAuthTokenField>('pending_auth_token')
@@ -339,6 +342,7 @@ onMounted(async () => {
       initialTencentCaptchaRandstr.value = registerData.tencent_captcha_randstr || ''
       promoCode.value = registerData.promo_code || ''
       invitationCode.value = registerData.invitation_code || ''
+      registrationReason.value = registerData.registration_reason || ''
       affCode.value = registerData.aff_code || loadAffiliateReferralCode()
       pendingAuthToken.value = registerData.pending_auth_token || activePendingSession?.token || ''
       pendingAuthTokenField.value = registerData.pending_auth_token_field || activePendingSession?.token_field || 'pending_auth_token'
@@ -732,6 +736,7 @@ async function handleVerify(): Promise<void> {
         tencent_captcha_randstr: tencentCaptchaEnabled.value ? initialTencentCaptchaRandstr.value || undefined : undefined,
         promo_code: promoCode.value || undefined,
         invitation_code: invitationCode.value || undefined,
+        ...(registrationReason.value ? { registration_reason: registrationReason.value } : {}),
         ...(affCode.value ? { aff_code: affCode.value } : {})
       })
     }
@@ -746,6 +751,14 @@ async function handleVerify(): Promise<void> {
     // Redirect to dashboard
     await router.push(pendingRedirect.value || '/dashboard')
   } catch (error: unknown) {
+    // 注册审核：注册已提交待审核，引导到登录页等待管理员通过。
+    if (isRegistrationPendingReviewError(error)) {
+      sessionStorage.removeItem('register_data')
+      appStore.showSuccess(t('auth.registrationPendingReviewSuccess'))
+      await router.push('/login')
+      return
+    }
+
     errorMessage.value = buildRegistrationErrorMessage(error, t('auth.verifyFailed'))
 
     appStore.showError(errorMessage.value)
@@ -781,6 +794,10 @@ function buildEmailSuffixNotAllowedMessage(): string {
       more: (count) => t('auth.emailSuffixAllowedMore', { count })
     })
   })
+}
+
+function isRegistrationPendingReviewError(error: unknown): boolean {
+  return error instanceof RegistrationPendingReviewError
 }
 
 function buildRegistrationErrorMessage(error: unknown, fallback: string): string {

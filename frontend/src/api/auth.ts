@@ -69,6 +69,19 @@ export function isTotp2FARequired(response: LoginResponse): response is TotpLogi
 }
 
 /**
+ * 注册审核：注册成功但需等待管理员审核专用错误。
+ * error_code 固定为 REGISTRATION_PENDING，便于调用方（含 i18n 映射）识别。
+ */
+export class RegistrationPendingReviewError extends Error {
+  readonly code = 'REGISTRATION_PENDING'
+
+  constructor(message = 'REGISTRATION_PENDING') {
+    super(message)
+    this.name = 'RegistrationPendingReviewError'
+  }
+}
+
+/**
  * Store authentication token in localStorage
  */
 export function setAuthToken(token: string): void {
@@ -170,10 +183,20 @@ export async function login2FA(request: TotpLogin2FARequest): Promise<AuthRespon
 /**
  * User registration
  * @param userData - Registration data (username, email, password)
- * @returns Authentication response with token and user data
+ * @returns Authentication response with token and user data.
+ * When registration review is enabled the backend returns `pending_review: true`
+ * without tokens; in that case a `RegistrationPendingReviewError` is thrown so
+ * callers can route the user to a "waiting for approval" notice instead of a login flow.
  */
 export async function register(userData: RegisterRequest): Promise<AuthResponse> {
-  const { data } = await apiClient.post<AuthResponse>('/auth/register', userData)
+  const { data } = await apiClient.post<
+    AuthResponse & { pending_review?: boolean; message?: string }
+  >('/auth/register', userData)
+
+  // 注册审核：无 token，等待管理员审核
+  if (data?.pending_review) {
+    throw new RegistrationPendingReviewError(data.message || 'REGISTRATION_PENDING')
+  }
 
   // Store token and user data
   setAuthToken(data.access_token)

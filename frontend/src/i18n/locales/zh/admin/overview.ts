@@ -600,6 +600,8 @@ export default {
       expired: '已过期',
       disable: '禁用',
       enable: '启用',
+      pendingReview: '待审核',
+      reviewApprove: '通过审核',
       disableUser: '禁用用户',
       enableUser: '启用用户',
       viewApiKeys: '查看 API 密钥',
