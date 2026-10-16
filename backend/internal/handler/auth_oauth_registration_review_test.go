@@ -44,6 +44,63 @@ func reviewOAuthContext(t *testing.T, body string) (*gin.Context, *httptest.Resp
 	return c, recorder
 }
 
+func TestOAuthReviewLocalEmailVerificationIsIndependentOfRegistrationToggle(t *testing.T) {
+	for _, provider := range []string{"linuxdo", "oidc", "wechat", "dingtalk"} {
+		for _, tc := range []struct {
+			name, code, reason string
+			status             int
+		}{
+			{"missing code", "", "EMAIL_VERIFY_REQUIRED", http.StatusBadRequest},
+			{"invalid code", "000000", "INVALID_VERIFY_CODE", http.StatusBadRequest},
+			{"verified application", "246810", "", http.StatusOK},
+		} {
+			t.Run(provider+"/"+tc.name, func(t *testing.T) {
+				handler, client := newOAuthPendingFlowTestHandlerWithDependencies(t, oauthPendingFlowTestHandlerOptions{
+					emailVerifyEnabled: false,
+					settingValues: map[string]string{
+						service.SettingKeyRegistrationReviewEnabled: "true",
+					},
+					emailCache: &oauthPendingFlowEmailCacheStub{verificationCodes: map[string]*service.VerificationCodeData{
+						"review@example.com": {Code: "246810", ExpiresAt: time.Now().Add(15 * time.Minute)},
+					}},
+				})
+				session := reviewOAuthSession(t, client, provider)
+				body, err := json.Marshal(map[string]string{
+					"email": "review@example.com", "password": "secret-123",
+					"registration_reason": "Research access", "verify_code": tc.code,
+				})
+				require.NoError(t, err)
+				c, recorder := reviewOAuthContext(t, string(body))
+				handler.CreatePendingOAuthAccount(c)
+				require.Equal(t, tc.status, recorder.Code, recorder.Body.String())
+				storedSession, err := client.PendingAuthSession.Get(context.Background(), session.ID)
+				require.NoError(t, err)
+				if tc.reason != "" {
+					require.Contains(t, recorder.Body.String(), tc.reason)
+					count, err := client.User.Query().Count(context.Background())
+					require.NoError(t, err)
+					require.Zero(t, count)
+					require.Nil(t, storedSession.ConsumedAt)
+					return
+				}
+				var payload map[string]any
+				require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &payload))
+				require.Equal(t, true, payload["pending_review"])
+				require.NotContains(t, payload, "access_token")
+				require.NotContains(t, payload, "refresh_token")
+				user, err := client.User.Query().Only(context.Background())
+				require.NoError(t, err)
+				require.Equal(t, "pending", user.Status)
+				require.Equal(t, "Research access", user.RegistrationReason)
+				identity, err := client.AuthIdentity.Query().Where(authidentity.UserIDEQ(user.ID)).Only(context.Background())
+				require.NoError(t, err)
+				require.Equal(t, provider, identity.ProviderType)
+				require.NotNil(t, storedSession.ConsumedAt)
+			})
+		}
+	}
+}
+
 // Losing reason forwarding or returning before binding/consumption leaves an unusable application.
 func TestOAuthRegistrationReviewCreatesBoundPendingAccountWithoutTokens(t *testing.T) {
 	for _, provider := range []string{"github", "google", "oidc"} {

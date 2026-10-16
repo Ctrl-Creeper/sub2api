@@ -764,6 +764,7 @@ describe('WechatCallbackView', () => {
     await flushPromises()
     await wrapper.get('[data-testid="wechat-create-account-email"]').setValue('existing@example.com')
     await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="wechat-create-account-verify-code"]').setValue('246810')
     await wrapper.get('[data-testid="wechat-create-account-submit"]').trigger('click')
     await flushPromises()
 
@@ -793,6 +794,7 @@ describe('WechatCallbackView', () => {
     await flushPromises()
     await wrapper.get('[data-testid="wechat-create-account-email"]').setValue('new@example.com')
     await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="wechat-create-account-verify-code"]').setValue('246810')
     await wrapper.get('[data-testid="wechat-create-account-submit"]').trigger('click')
     await flushPromises()
 
