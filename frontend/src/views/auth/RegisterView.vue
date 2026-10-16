@@ -235,6 +235,25 @@
           </transition>
         </div>
 
+        <!-- Registration Reason (required when registration review is enabled) -->
+        <div v-if="registrationReviewEnabled" data-testid="registration-reason-field">
+          <label for="registration_reason" class="input-label">
+            {{ t('auth.registrationReasonLabel') }}
+          </label>
+          <textarea
+            id="registration_reason"
+            v-model="formData.registration_reason"
+            rows="3"
+            maxlength="500"
+            :disabled="registrationActionDisabled"
+            class="input resize-none"
+            :placeholder="t('auth.registrationReasonPlaceholder')"
+          />
+          <p class="mt-1.5 text-xs text-gray-400 dark:text-dark-500">
+            {{ t('auth.registrationReviewNotice') }}
+          </p>
+        </div>
+
         <!-- Turnstile Widget -->
         <div v-if="captchaEnabled" data-testid="registration-turnstile">
           <TurnstileWidget
@@ -382,6 +401,7 @@ import {
   buildOAuthLoginStartURL,
   getPublicSettings,
   isWeChatWebOAuthEnabled,
+  RegistrationPendingReviewError,
   startOAuthLogin,
   type OAuthLoginStart,
   validatePromoCode,
@@ -423,6 +443,8 @@ const confirmPassword = ref('')
 // Public settings
 const registrationEnabled = ref<boolean>(true)
 const emailVerifyEnabled = ref<boolean>(false)
+// 注册审核：开启时注册表单展示"申请理由"必填项，注册后等待管理员审核。
+const registrationReviewEnabled = ref<boolean>(false)
 // Public settings are injected into the app store before Vue mounts. Use that
 // value for the first render so a disabled promo-code field never flashes
 // while the async settings request is still in flight. If injection is
@@ -504,7 +526,8 @@ const formData = reactive({
   password: '',
   promo_code: '',
   invitation_code: '',
-  aff_code: ''
+  aff_code: '',
+  registration_reason: ''
 })
 
 const errors = reactive({
@@ -512,7 +535,8 @@ const errors = reactive({
   password: '',
   confirmPassword: '',
   turnstile: '',
-  invitation_code: ''
+  invitation_code: '',
+  registration_reason: ''
 })
 
 const validationToastMessage = computed(() =>
@@ -522,6 +546,7 @@ const validationToastMessage = computed(() =>
   (invitationValidation.invalid ? invitationValidation.message : '') ||
   errors.invitation_code ||
   (promoValidation.invalid ? promoValidation.message : '') ||
+  errors.registration_reason ||
   errors.turnstile ||
   ''
 )
@@ -566,6 +591,7 @@ onMounted(async () => {
     const settings = await getPublicSettings()
     registrationEnabled.value = settings.registration_enabled
     emailVerifyEnabled.value = settings.email_verify_enabled
+    registrationReviewEnabled.value = settings.registration_review_enabled === true
     promoCodeEnabled.value = settings.promo_code_enabled
     invitationCodeEnabled.value = settings.invitation_code_enabled
     affiliateEnabled.value = settings.affiliate_enabled
@@ -930,6 +956,7 @@ function validateForm(): boolean {
   errors.confirmPassword = ''
   errors.turnstile = ''
   errors.invitation_code = ''
+  errors.registration_reason = ''
 
   let isValid = true
 
@@ -981,6 +1008,12 @@ function validateForm(): boolean {
       errors.invitation_code = t('auth.invitationCodeRequired')
       isValid = false
     }
+  }
+
+  // Registration review: reason is required so the admin has something to review.
+  if (registrationReviewEnabled.value && !formData.registration_reason.trim()) {
+    errors.registration_reason = t('auth.registrationReasonRequired')
+    isValid = false
   }
 
   // Turnstile validation
@@ -1067,6 +1100,9 @@ async function handleRegister(): Promise<void> {
           tencent_captcha_randstr: tencentCaptchaEnabled.value ? tencentCaptchaRandstr.value : undefined,
           promo_code: formData.promo_code || undefined,
           invitation_code: formData.invitation_code || undefined,
+          ...(formData.registration_reason.trim()
+            ? { registration_reason: formData.registration_reason.trim() }
+            : {}),
           ...(affCode ? { aff_code: affCode } : {})
         })
       )
@@ -1086,6 +1122,9 @@ async function handleRegister(): Promise<void> {
       tencent_captcha_randstr: tencentCaptchaEnabled.value ? tencentCaptchaRandstr.value : undefined,
       promo_code: formData.promo_code || undefined,
       invitation_code: formData.invitation_code || undefined,
+      ...(formData.registration_reason.trim()
+        ? { registration_reason: formData.registration_reason.trim() }
+        : {}),
       ...(affCode ? { aff_code: affCode } : {})
     })
     clearAffiliateReferralCode()
@@ -1096,6 +1135,13 @@ async function handleRegister(): Promise<void> {
     // Redirect to dashboard
     await router.push('/dashboard')
   } catch (error: unknown) {
+    // 注册审核：注册已提交，等待管理员审核。不展示错误，引导到登录页提示。
+    if (error instanceof RegistrationPendingReviewError) {
+      appStore.showSuccess(t('auth.registrationPendingReviewSuccess'))
+      await router.push('/login')
+      return
+    }
+
     // Handle registration error
     errorMessage.value = buildRegistrationErrorMessage(error, t('auth.registrationFailed'))
 
