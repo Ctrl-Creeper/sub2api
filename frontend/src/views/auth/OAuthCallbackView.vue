@@ -299,6 +299,16 @@ function hasOAuthTokenResponse(value: Partial<OAuthTokenResponse>): value is OAu
   return typeof value.access_token === 'string' && value.access_token.trim() !== ''
 }
 
+async function handleRegistrationPending(error: unknown): Promise<boolean> {
+  if (!(error instanceof RegistrationPendingReviewError)) return false
+  window.sessionStorage.removeItem(EMAIL_OAUTH_PENDING_PROVIDER_KEY)
+  authStore.clearPendingAuthSession?.()
+  clearAllAffiliateReferralCodes()
+  appStore.showSuccess(t('auth.registrationPendingReviewSuccess'))
+  await router.replace('/login')
+  return true
+}
+
 async function resumePendingEmailOAuth() {
   isProcessing.value = true
   try {
@@ -326,14 +336,7 @@ async function resumePendingEmailOAuth() {
 
     appStore.showError(completion.error || t('auth.loginFailed'))
   } catch (e: unknown) {
-    if (e instanceof RegistrationPendingReviewError) {
-      window.sessionStorage.removeItem(EMAIL_OAUTH_PENDING_PROVIDER_KEY)
-      authStore.clearPendingAuthSession?.()
-      clearAllAffiliateReferralCodes()
-      appStore.showSuccess(t('auth.registrationPendingReviewSuccess'))
-      await router.replace('/login')
-      return
-    }
+    if (await handleRegistrationPending(e)) return
     const err = e as { message?: string; response?: { data?: { message?: string } } }
     const message = err.response?.data?.message || err.message || t('auth.loginFailed')
     appStore.showError(message)
@@ -384,14 +387,7 @@ async function handleSubmitRegistration() {
     if (!hasOAuthTokenResponse(data)) throw new Error(t('auth.loginFailed'))
     await finalizeTokenResponse(data, redirectTo.value)
   } catch (e: unknown) {
-    if (e instanceof RegistrationPendingReviewError) {
-      window.sessionStorage.removeItem(EMAIL_OAUTH_PENDING_PROVIDER_KEY)
-      authStore.clearPendingAuthSession?.()
-      clearAllAffiliateReferralCodes()
-      appStore.showSuccess(t('auth.registrationPendingReviewSuccess'))
-      await router.replace('/login')
-      return
-    }
+    if (await handleRegistrationPending(e)) return
     const err = e as { message?: string; response?: { data?: { message?: string } } }
     registrationError.value =
       err.response?.data?.message || err.message || t('auth.oidc.completeRegistrationFailed')

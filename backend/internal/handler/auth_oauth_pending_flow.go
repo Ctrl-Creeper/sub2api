@@ -65,6 +65,14 @@ type bindPendingOAuthLoginRequest struct {
 	AdoptAvatar      *bool  `json:"adopt_avatar,omitempty"`
 }
 
+type completeOAuthRegistrationRequest struct {
+	InvitationCode     string `json:"invitation_code,omitempty"`
+	RegistrationReason string `json:"registration_reason,omitempty"`
+	AffCode            string `json:"aff_code,omitempty"`
+	AdoptDisplayName   *bool  `json:"adopt_display_name,omitempty"`
+	AdoptAvatar        *bool  `json:"adopt_avatar,omitempty"`
+}
+
 type createPendingOAuthAccountRequest struct {
 	RegistrationReason    string `json:"registration_reason,omitempty"`
 	Email                 string `json:"email" binding:"required,email"`

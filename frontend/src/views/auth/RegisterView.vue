@@ -1136,7 +1136,7 @@ async function handleRegister(): Promise<void> {
     await router.push('/dashboard')
   } catch (error: unknown) {
     // 注册审核：注册已提交，等待管理员审核。不展示错误，引导到登录页提示。
-    if (isRegistrationPendingReviewError(error)) {
+    if (error instanceof RegistrationPendingReviewError) {
       appStore.showSuccess(t('auth.registrationPendingReviewSuccess'))
       await router.push('/login')
       return
@@ -1153,10 +1153,6 @@ async function handleRegister(): Promise<void> {
     }
     isLoading.value = false
   }
-}
-
-function isRegistrationPendingReviewError(error: unknown): boolean {
-  return error instanceof RegistrationPendingReviewError
 }
 
 function buildRegistrationErrorMessage(error: unknown, fallback: string): string {

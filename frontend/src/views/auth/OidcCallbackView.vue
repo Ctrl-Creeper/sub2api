@@ -699,11 +699,10 @@ async function handleSubmitInvitation() {
             ...serializeAdoptionDecision(decision)
           })
         ).data
-      : registrationReviewEnabled.value
-        ? await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision, affCode || undefined, registrationReason.value.trim())
-        : affCode
-          ? await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision, affCode)
-        : await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision)
+      : await completeOIDCOAuthRegistration(
+          invitationCode.value.trim(), decision, affCode || undefined,
+          registrationReviewEnabled.value ? registrationReason.value.trim() : undefined
+        )
     await finalizePendingAccountResponse(completion)
   } catch (e: unknown) {
     if (await handleRegistrationPending(e)) return
@@ -802,7 +801,6 @@ async function handleSubmitTotpChallenge() {
     appStore.showSuccess(t('auth.loginSuccess'))
     await router.replace(redirectTo.value)
   } catch (e: unknown) {
-    if (await handleRegistrationPending(e)) return
     totpError.value = getRequestErrorMessage(e, t('auth.loginFailed'))
   } finally {
     isSubmitting.value = false

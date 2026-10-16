@@ -315,8 +315,6 @@ export default {
       'This site requires admin approval. Your account will be reviewable before you can log in.',
     registrationPendingReviewSuccess:
       'Registration submitted! Please wait for admin approval before logging in.',
-    registrationPendingLoginError:
-      'Your registration is pending admin review. You can log in once it has been approved.',
     oauthOrContinue: 'or continue with others',
     linuxdo: {
       signIn: 'Continue with Linux.do',

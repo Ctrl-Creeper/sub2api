@@ -563,12 +563,8 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	}
 
 	// 检查用户状态
-	if !user.IsActive() {
-		// 待审核用户返回更明确的错误，便于前端提示“等待管理员审核”。
-		if user.Status == StatusPending {
-			return "", nil, ErrRegistrationPending
-		}
-		return "", nil, ErrUserNotActive
+	if err := activeUserError(user); err != nil {
+		return "", nil, err
 	}
 
 	// 生成JWT token
