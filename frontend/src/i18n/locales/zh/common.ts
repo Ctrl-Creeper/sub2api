@@ -311,7 +311,6 @@ export default {
     registrationReasonRequired: '请填写申请理由',
     registrationReviewNotice: '本站开启注册审核，提交后需等待管理员审核通过方可登录',
     registrationPendingReviewSuccess: '注册已提交！请等待管理员审核通过后再登录。',
-    registrationPendingLoginError: '您的注册申请正在等待管理员审核，审核通过后即可登录。',
     oauthOrContinue: '或使用其他继续',
     linuxdo: {
       signIn: '使用 Linux.do 登录',

@@ -383,7 +383,7 @@ describe('OidcCallbackView', () => {
     expect(completeOIDCOAuthRegistration).toHaveBeenCalledWith('invite-code', {
       adoptDisplayName: true,
       adoptAvatar: false
-    })
+    }, undefined, undefined)
   })
 
   it('keeps the oauth flow active when complete-registration returns another pending step', async () => {
@@ -423,7 +423,7 @@ describe('OidcCallbackView', () => {
     expect(completeOIDCOAuthRegistration).toHaveBeenCalledWith('invite-code', {
       adoptDisplayName: true,
       adoptAvatar: true
-    })
+    }, undefined, undefined)
     expect(setToken).not.toHaveBeenCalled()
     expect(replace).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('auth.oauthFlow.bindExistingAccount')

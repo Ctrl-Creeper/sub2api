@@ -779,7 +779,6 @@ async function handleSubmitTotpChallenge() {
     appStore.showSuccess(t('auth.loginSuccess'))
     await router.replace(redirectTo.value)
   } catch (e: unknown) {
-    if (await handleRegistrationPending(e)) return
     totpError.value = getRequestErrorMessage(e, t('auth.loginFailed'))
   } finally {
     isSubmitting.value = false

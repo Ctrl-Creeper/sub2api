@@ -782,7 +782,7 @@ async function handleVerify(): Promise<void> {
     await router.push(pendingRedirect.value || '/dashboard')
   } catch (error: unknown) {
     // 注册审核：注册已提交待审核，引导到登录页等待管理员通过。
-    if (isRegistrationPendingReviewError(error)) {
+    if (error instanceof RegistrationPendingReviewError) {
       authStore.clearPendingAuthSession?.()
       clearAllAffiliateReferralCodes()
       sessionStorage.removeItem('register_data')
@@ -826,10 +826,6 @@ function buildEmailSuffixNotAllowedMessage(): string {
       more: (count) => t('auth.emailSuffixAllowedMore', { count })
     })
   })
-}
-
-function isRegistrationPendingReviewError(error: unknown): boolean {
-  return error instanceof RegistrationPendingReviewError
 }
 
 function buildRegistrationErrorMessage(error: unknown, fallback: string): string {

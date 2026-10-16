@@ -484,19 +484,11 @@ func (h *AuthHandler) wechatPaymentResumeService() *service.PaymentResumeService
 	return service.NewLegacyAwarePaymentResumeService(legacyKey)
 }
 
-type completeWeChatOAuthRequest struct {
-	InvitationCode     string `json:"invitation_code,omitempty"`
-	RegistrationReason string `json:"registration_reason,omitempty"`
-	AffCode            string `json:"aff_code,omitempty"`
-	AdoptDisplayName   *bool  `json:"adopt_display_name,omitempty"`
-	AdoptAvatar        *bool  `json:"adopt_avatar,omitempty"`
-}
-
 // CompleteWeChatOAuthRegistration completes a pending WeChat OAuth registration by
 // validating the invitation code and consuming the current pending browser session.
 // POST /api/v1/auth/oauth/wechat/complete-registration
 func (h *AuthHandler) CompleteWeChatOAuthRegistration(c *gin.Context) {
-	var req completeWeChatOAuthRequest
+	var req completeOAuthRegistrationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "INVALID_REQUEST", "message": err.Error()})
 		return
@@ -594,12 +586,7 @@ func (h *AuthHandler) CompleteWeChatOAuthRegistration(c *gin.Context) {
 	}
 	h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  tokenPair.AccessToken,
-		"refresh_token": tokenPair.RefreshToken,
-		"expires_in":    tokenPair.ExpiresIn,
-		"token_type":    "Bearer",
-	})
+	writeOAuthTokenPairResponse(c, tokenPair)
 }
 
 func (h *AuthHandler) createWeChatPendingSession(

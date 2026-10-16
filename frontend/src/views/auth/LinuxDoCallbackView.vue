@@ -676,11 +676,10 @@ async function handleSubmitInvitation() {
             ...serializeAdoptionDecision(decision)
           })
         ).data
-      : registrationReviewEnabled.value
-        ? await completeLinuxDoOAuthRegistration(invitationCode.value.trim(), decision, affCode || undefined, registrationReason.value.trim())
-        : affCode
-          ? await completeLinuxDoOAuthRegistration(invitationCode.value.trim(), decision, affCode)
-        : await completeLinuxDoOAuthRegistration(invitationCode.value.trim(), decision)
+      : await completeLinuxDoOAuthRegistration(
+          invitationCode.value.trim(), decision, affCode || undefined,
+          registrationReviewEnabled.value ? registrationReason.value.trim() : undefined
+        )
     await finalizePendingAccountResponse(completion)
   } catch (e: unknown) {
     if (await handleRegistrationPending(e)) return
@@ -779,7 +778,6 @@ async function handleSubmitTotpChallenge() {
     appStore.showSuccess(t('auth.loginSuccess'))
     await router.replace(redirectTo.value)
   } catch (e: unknown) {
-    if (await handleRegistrationPending(e)) return
     totpError.value = getRequestErrorMessage(e, t('auth.loginFailed'))
   } finally {
     isSubmitting.value = false
