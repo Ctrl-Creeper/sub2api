@@ -66,6 +66,8 @@
             />
           </div>
           <RegistrationReasonField
+            :instructions="registrationReviewInstructions"
+            :max-length="registrationReasonMaxLength"
             v-if="registrationReviewEnabled"
             v-model="registrationReason"
             :disabled="isSubmitting"
@@ -151,6 +153,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRegistrationReview } from '@/composables/useRegistrationReview'
 import { computed, onMounted, ref, watch } from 'vue'
 import RegistrationReasonField from '@/components/auth/RegistrationReasonField.vue'
 import { useI18n } from 'vue-i18n'
@@ -186,6 +189,7 @@ const registrationEmail = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const invitationCode = ref('')
+const { loadRegistrationReviewSettings, registrationReviewInstructions, registrationReasonMaxLength, registrationReasonError } = useRegistrationReview()
 const registrationReason = ref('')
 const completionReviewEnabled = ref(false)
 const registrationReviewEnabled = computed(() => completionReviewEnabled.value || appStore.cachedPublicSettings?.registration_review_enabled === true)
@@ -228,7 +232,7 @@ const canSubmitRegistration = computed(() => {
   if (password.value.length < 6) return false
   if (password.value !== confirmPassword.value) return false
   if (invitationRequired.value && !invitationCode.value.trim()) return false
-  if (registrationReviewEnabled.value && (!registrationReason.value.trim() || registrationReason.value.trim().length > 500)) return false
+  if (registrationReviewEnabled.value && registrationReasonError(registrationReason.value)) return false
   return true
 })
 
@@ -313,6 +317,7 @@ async function resumePendingEmailOAuth() {
   isProcessing.value = true
   try {
     const completion = await exchangePendingOAuthCompletion() as EmailOAuthPendingCompletion
+    if (completion.registration_review_enabled === true) await loadRegistrationReviewSettings()
     completionReviewEnabled.value = completion.registration_review_enabled === true
     const completionRedirect = completion.redirect || '/dashboard'
     if (hasOAuthTokenResponse(completion)) {
@@ -362,8 +367,8 @@ async function handleSubmitRegistration() {
     registrationError.value = t('auth.passwordsDoNotMatch')
     return
   }
-  if (registrationReviewEnabled.value && (!registrationReason.value.trim() || registrationReason.value.trim().length > 500)) {
-    registrationError.value = t(registrationReason.value.trim() ? 'auth.registrationReasonTooLong' : 'auth.registrationReasonRequired')
+  if (registrationReviewEnabled.value && registrationReasonError(registrationReason.value)) {
+    registrationError.value = registrationReasonError(registrationReason.value)
     return
   }
   const code = invitationCode.value.trim()

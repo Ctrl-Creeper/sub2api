@@ -79,6 +79,8 @@
 
           <template v-if="needsInvitation">
             <RegistrationReasonField
+              :instructions="registrationReviewInstructions"
+              :max-length="registrationReasonMaxLength"
               v-if="registrationReviewEnabled"
               v-model="registrationReason"
               :disabled="isSubmitting"
@@ -98,7 +100,7 @@
             </div>
             <button
               class="btn btn-primary w-full"
-              :disabled="isSubmitting || !invitationCode.trim() || (registrationReviewEnabled && (!registrationReason.trim() || registrationReason.trim().length > 500))"
+              :disabled="isSubmitting || !invitationCode.trim() || (registrationReviewEnabled && !!registrationReasonError(registrationReason))"
               @click="handleSubmitInvitation"
             >
               {{
@@ -249,6 +251,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRegistrationReview } from '@/composables/useRegistrationReview'
 import { computed, onMounted, ref, watch } from 'vue'
 import RegistrationReasonField from '@/components/auth/RegistrationReasonField.vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -290,6 +293,7 @@ const isProcessing = ref(true)
 const errorMessage = ref('')
 const needsInvitation = ref(false)
 const invitationCode = ref('')
+const { loadRegistrationReviewSettings, registrationReviewSettings, registrationReviewInstructions, registrationReasonMaxLength, registrationReasonError } = useRegistrationReview()
 const registrationReason = ref('')
 const completionReviewEnabled = ref(false)
 const registrationReviewEnabled = computed(() => completionReviewEnabled.value || appStore.cachedPublicSettings?.registration_review_enabled === true)
@@ -415,6 +419,7 @@ function sanitizeRedirectPath(path: string | null | undefined): string {
 async function loadProviderName() {
   try {
     const settings = await getPublicSettings()
+    registrationReviewSettings.value = settings
     const name = settings.oidc_oauth_provider_name?.trim()
     if (name) {
       providerName.value = name
@@ -680,8 +685,8 @@ async function finalizePendingAccountResponse(completion: PendingOidcCompletion)
 async function handleSubmitInvitation() {
   invitationError.value = ''
   if (!invitationCode.value.trim()) return
-  if (registrationReviewEnabled.value && (!registrationReason.value.trim() || registrationReason.value.trim().length > 500)) {
-    invitationError.value = t(registrationReason.value.trim() ? 'auth.registrationReasonTooLong' : 'auth.registrationReasonRequired')
+  if (registrationReviewEnabled.value && registrationReasonError(registrationReason.value)) {
+    invitationError.value = registrationReasonError(registrationReason.value)
     return
   }
 
@@ -832,6 +837,7 @@ onMounted(async () => {
     if (error === 'invitation_required' && legacyPendingToken) {
       try {
         const settings = await getPublicSettings()
+        registrationReviewSettings.value = settings
         completionReviewEnabled.value = settings.registration_review_enabled === true
       } catch { /* Backend validates the reason if public settings are unavailable. */ }
       legacyPendingOAuthToken.value = legacyPendingToken
@@ -848,6 +854,7 @@ onMounted(async () => {
     }
 
     const completion = await exchangePendingOAuthCompletion() as PendingOidcCompletion
+    if (completion.registration_review_enabled === true) await loadRegistrationReviewSettings()
     const completionRedirect = sanitizeRedirectPath(
       completion.redirect || (route.query.redirect as string | undefined) || '/dashboard'
     )

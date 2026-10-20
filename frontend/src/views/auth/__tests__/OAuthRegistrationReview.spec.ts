@@ -23,7 +23,7 @@ vi.mock('@/api/auth', async () => ({
 }))
 vi.mock('@/stores', () => ({
   useAuthStore: () => ({ setToken: state.setToken, setPendingAuthSession: vi.fn(), clearPendingAuthSession: state.clear }),
-  useAppStore: () => ({ showSuccess: state.showSuccess, showError: state.showError })
+  useAppStore: () => ({ showSuccess: state.showSuccess, showError: state.showError, cachedPublicSettings: { registration_reason_max_length: 500, registration_review_instructions: "Old requirements" } })
 }))
 const options = { global: { stubs: {
   AuthLayout: { template: '<div><slot /></div>' }, Icon: true, RouterLink: true, transition: false
@@ -75,6 +75,20 @@ describe('OAuth signup review', () => {
     expect(state.setToken).not.toHaveBeenCalled()
     expect(state.showSuccess).toHaveBeenCalledWith('auth.registrationPendingReviewSuccess')
     expect(state.replace).toHaveBeenCalledWith('/login')
+    wrapper.unmount()
+  })
+
+  it.each(providers)('%s invitation completion uses custom requirements and limits', async (provider, component) => {
+    state.settings.mockResolvedValue({ registration_review_enabled: true, registration_review_instructions: 'Include your use case', registration_reason_max_length: 800 })
+    state.exchange.mockResolvedValue({ error: 'invitation_required', registration_review_enabled: true })
+    const wrapper = mount(component, options)
+    await flushPromises()
+    expect(wrapper.text()).toContain('Include your use case')
+    await wrapper.get('input[type="text"]').setValue('INVITE')
+    await wrapper.get('textarea').setValue('申'.repeat(600))
+    await wrapper.get('button').trigger('click')
+    await flushPromises()
+    expect(state.post).toHaveBeenCalledWith(`/auth/oauth/${provider}/complete-registration`, expect.objectContaining({ registration_reason: '申'.repeat(600) }))
     wrapper.unmount()
   })
 

@@ -249,7 +249,7 @@ export default {
     errors: {
       USER_NOT_ACTIVE: '账号已被禁用',
       REGISTRATION_REASON_REQUIRED: '请填写申请理由。',
-      REGISTRATION_REASON_TOO_LONG: '申请理由不能超过 500 个字符。',
+      REGISTRATION_REASON_TOO_LONG: '申请理由超过本站设置的字数上限。',
       REGISTRATION_PENDING: '您的注册申请正在等待管理员审核，审核通过后即可登录。',
     },
     registrationFailed: '注册失败，请重试。',
@@ -307,7 +307,7 @@ export default {
     invitationCodeInvalidCannotRegister: '邀请码无效，请检查后重试',
     registrationReasonLabel: '申请理由',
     registrationReasonPlaceholder: '请填写申请理由，例如用途介绍、所在团队等',
-    registrationReasonTooLong: '申请理由不能超过 500 个字符',
+    registrationReasonTooLong: '申请理由不能超过 {max} 个字符',
     registrationReasonRequired: '请填写申请理由',
     registrationReviewNotice: '本站开启注册审核，提交后需等待管理员审核通过方可登录',
     registrationPendingReviewSuccess: '注册已提交！请等待管理员审核通过后再登录。',

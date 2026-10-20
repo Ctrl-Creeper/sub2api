@@ -285,3 +285,24 @@ func TestRegistrationReview_AdminPromotionCanApprovePendingAccount(t *testing.T)
 	require.Equal(t, RoleAdmin, user.Role)
 	require.Equal(t, StatusActive, user.Status)
 }
+
+func TestRegistrationReview_ConfigurableReasonLimit(t *testing.T) {
+	for _, tc := range []struct{ limit, reason, want string }{
+		{"3", "申申申", ""},
+		{"3", "申申申申", "REGISTRATION_REASON_TOO_LONG"},
+		{"3", "😀😀😀", ""},
+		{"1000", strings.Repeat("申", 600), ""},
+		{"bad", strings.Repeat("申", 501), "REGISTRATION_REASON_TOO_LONG"},
+	} {
+		t.Run(tc.limit+tc.want, func(t *testing.T) {
+			svc := newAuthService(&userRepoStub{}, map[string]string{SettingKeyRegistrationReviewEnabled: "true", "registration_reason_max_length": tc.limit}, nil, nil)
+			status, _, err := svc.resolveRegistrationStatus(context.Background(), tc.reason)
+			if tc.want != "" {
+				require.Equal(t, tc.want, infraerrors.Reason(err))
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, StatusPending, status)
+		})
+	}
+}

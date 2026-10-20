@@ -77,6 +77,8 @@
       :disabled="isSubmitting"
     />
     <RegistrationReasonField
+      :instructions="registrationReviewInstructions"
+      :max-length="registrationReasonMaxLength"
       v-if="registrationReviewEnabled"
       v-model="registrationReason"
       :id="`${testIdPrefix}-create-account-registration-reason`"
@@ -86,7 +88,7 @@
       :data-testid="`${testIdPrefix}-create-account-submit`"
       type="button"
       class="btn btn-primary w-full"
-      :disabled="isSubmitting || !email.trim() || password.length < 6 || !verifyCode.trim() || (registrationReviewEnabled && (!registrationReason.trim() || registrationReason.trim().length > 500)) || (invitationCodeEnabled && !invitationCode.trim()) || (turnstileEnabled && !turnstileToken)"
+      :disabled="isSubmitting || !email.trim() || password.length < 6 || !verifyCode.trim() || (registrationReviewEnabled && !!registrationReasonError(registrationReason)) || (invitationCodeEnabled && !invitationCode.trim()) || (turnstileEnabled && !turnstileToken)"
       @click="handleSubmit"
     >
       {{ isSubmitting ? t('common.processing') : t('auth.createAccount') }}
@@ -103,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRegistrationReview } from '@/composables/useRegistrationReview'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import RegistrationReasonField from './RegistrationReasonField.vue'
@@ -141,6 +144,7 @@ const email = ref('')
 const password = ref('')
 const verifyCode = ref('')
 const invitationCode = ref('')
+const { registrationReviewSettings, registrationReviewInstructions, registrationReasonMaxLength, registrationReasonError } = useRegistrationReview()
 const registrationReason = ref('')
 const publicRegistrationReviewEnabled = ref(false)
 const registrationReviewEnabled = computed(() => props.registrationReviewEnabled === true || publicRegistrationReviewEnabled.value)
@@ -319,8 +323,8 @@ async function handleSubmit() {
     return
   }
 
-  if (registrationReviewEnabled.value && (!registrationReason.value.trim() || registrationReason.value.trim().length > 500)) {
-    sendCodeError.value = t(registrationReason.value.trim() ? 'auth.registrationReasonTooLong' : 'auth.registrationReasonRequired')
+  if (registrationReviewEnabled.value && registrationReasonError(registrationReason.value)) {
+    sendCodeError.value = registrationReasonError(registrationReason.value)
     return
   }
 
@@ -372,6 +376,7 @@ function emitSwitchToBind() {
 onMounted(async () => {
   try {
     const settings = await getPublicSettings()
+    registrationReviewSettings.value = settings
     publicRegistrationReviewEnabled.value = settings.registration_review_enabled === true
     invitationCodeEnabled.value = settings.invitation_code_enabled === true
     turnstileEnabled.value = settings.turnstile_enabled === true

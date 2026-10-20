@@ -159,6 +159,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyRegistrationEnabled,
 		SettingKeyEmailVerifyEnabled,
 		SettingKeyRegistrationReviewEnabled,
+		SettingKeyRegistrationReviewInstructions,
+		SettingKeyRegistrationReasonMaxLength,
 		SettingKeyForceEmailOnThirdPartySignup,
 		SettingKeyRegistrationEmailSuffixWhitelist,
 		SettingKeyRegistrationEmailDomainQuotaEnabled,
@@ -304,6 +306,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		RegistrationEnabled:                 settings[SettingKeyRegistrationEnabled] == "true",
 		EmailVerifyEnabled:                  emailVerifyEnabled,
 		RegistrationReviewEnabled:           settings[SettingKeyRegistrationReviewEnabled] == "true",
+		RegistrationReviewInstructions:      strings.TrimSpace(settings[SettingKeyRegistrationReviewInstructions]),
+		RegistrationReasonMaxLength:         parseRegistrationReasonMaxLength(settings[SettingKeyRegistrationReasonMaxLength]),
 		ForceEmailOnThirdPartySignup:        settings[SettingKeyForceEmailOnThirdPartySignup] == "true",
 		RegistrationEmailSuffixWhitelist:    registrationEmailSuffixWhitelist,
 		RegistrationEmailDomainQuotaEnabled: settings[SettingKeyRegistrationEmailDomainQuotaEnabled] == "true",
@@ -565,6 +569,8 @@ type PublicSettingsInjectionPayload struct {
 	RegistrationEnabled                 bool                     `json:"registration_enabled"`
 	EmailVerifyEnabled                  bool                     `json:"email_verify_enabled"`
 	RegistrationReviewEnabled           bool                     `json:"registration_review_enabled"`
+	RegistrationReviewInstructions      string                   `json:"registration_review_instructions"`
+	RegistrationReasonMaxLength         int                      `json:"registration_reason_max_length"`
 	RegistrationEmailSuffixWhitelist    []string                 `json:"registration_email_suffix_whitelist"`
 	RegistrationEmailDomainQuotaEnabled bool                     `json:"registration_email_domain_quota_enabled"`
 	PromoCodeEnabled                    bool                     `json:"promo_code_enabled"`
@@ -660,6 +666,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		RegistrationEnabled:                 settings.RegistrationEnabled,
 		EmailVerifyEnabled:                  settings.EmailVerifyEnabled,
 		RegistrationReviewEnabled:           settings.RegistrationReviewEnabled,
+		RegistrationReviewInstructions:      settings.RegistrationReviewInstructions,
+		RegistrationReasonMaxLength:         settings.RegistrationReasonMaxLength,
 		RegistrationEmailSuffixWhitelist:    settings.RegistrationEmailSuffixWhitelist,
 		RegistrationEmailDomainQuotaEnabled: settings.RegistrationEmailDomainQuotaEnabled,
 		PromoCodeEnabled:                    settings.PromoCodeEnabled,

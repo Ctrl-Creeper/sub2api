@@ -83,6 +83,25 @@ describe('PendingOAuthCreateAccountForm', () => {
     wrapper.unmount()
   })
 
+  it('uses configured requirements and a Unicode character limit', async () => {
+    getPublicSettings.mockResolvedValue({ registration_review_enabled: true, registration_review_instructions: 'Describe your team\nExplain the intended use', registration_reason_max_length: 3 })
+    const wrapper = mount(PendingOAuthCreateAccountForm, {
+      props: { testIdPrefix: 'oidc', initialEmail: 'user@example.com', isSubmitting: false },
+      global: { stubs: { TurnstileWidget: true } }
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Describe your team')
+    await wrapper.get('input[type="password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="oidc-create-account-verify-code"]').setValue('246810')
+    await wrapper.get('textarea').setValue('abcd')
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    await wrapper.get('textarea').setValue('😀😀😀')
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({ registrationReason: '😀😀😀' })
+    wrapper.unmount()
+  })
+
   it('does not restart the code cooldown after switching away during a send', async () => {
     vi.useFakeTimers()
     let finish!: (value: { countdown: number }) => void
