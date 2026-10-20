@@ -52,6 +52,8 @@
         </div>
 
         <RegistrationReasonField
+          :instructions="registrationReviewInstructions"
+          :max-length="registrationReasonMaxLength"
           v-if="isPendingOAuthFlow() && registrationReviewEnabled"
           v-model="registrationReason"
           :disabled="isLoading"
@@ -184,6 +186,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRegistrationReview } from '@/composables/useRegistrationReview'
 import { DEFAULT_SITE_NAME, resolveSiteName } from '@/utils/siteBranding'
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -262,6 +265,7 @@ const initialTencentCaptchaRandstr = ref<string>('')
 const promoCode = ref<string>('')
 const invitationCode = ref<string>('')
 // 注册审核：注册页暂存的申请理由，随验证码一起提交。
+const { registrationReviewSettings, registrationReviewInstructions, registrationReasonMaxLength, registrationReasonError } = useRegistrationReview()
 const registrationReason = ref<string>('')
 const affCode = ref<string>('')
 const pendingAuthToken = ref<string>('')
@@ -391,6 +395,7 @@ onMounted(async () => {
   // Load public settings
   try {
     const settings = await getPublicSettings()
+    registrationReviewSettings.value = settings
     registrationReviewEnabled.value = settings.registration_review_enabled === true
     turnstileEnabled.value = settings.turnstile_enabled
     turnstileSiteKey.value = settings.turnstile_site_key || ''
@@ -695,8 +700,8 @@ async function handleVerify(): Promise<void> {
     return
   }
 
-  if (isPendingOAuthFlow() && registrationReviewEnabled.value && (!registrationReason.value.trim() || registrationReason.value.trim().length > 500)) {
-    errorMessage.value = t(registrationReason.value.trim() ? 'auth.registrationReasonTooLong' : 'auth.registrationReasonRequired')
+  if (isPendingOAuthFlow() && registrationReviewEnabled.value && registrationReasonError(registrationReason.value)) {
+    errorMessage.value = registrationReasonError(registrationReason.value)
     return
   }
 

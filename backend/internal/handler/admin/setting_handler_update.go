@@ -26,6 +26,8 @@ type UpdateSettingsRequest struct {
 	RegistrationEnabled                 bool                         `json:"registration_enabled"`
 	EmailVerifyEnabled                  bool                         `json:"email_verify_enabled"`
 	RegistrationReviewEnabled           *bool                        `json:"registration_review_enabled"` // 注册审核开关（省略=保持现值）
+	RegistrationReviewInstructions      *string                      `json:"registration_review_instructions" binding:"omitempty,max=5000"`
+	RegistrationReasonMaxLength         *int                         `json:"registration_reason_max_length" binding:"omitempty,min=1,max=10000"`
 	RegistrationEmailSuffixWhitelist    []string                     `json:"registration_email_suffix_whitelist"`
 	RegistrationEmailDomainQuotaEnabled *bool                        `json:"registration_email_domain_quota_enabled"` // 非白名单域名限量注册开关（省略=保持现值）
 	PromoCodeEnabled                    bool                         `json:"promo_code_enabled"`
@@ -526,6 +528,14 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	registrationReviewEnabled := previousSettings.RegistrationReviewEnabled
 	if req.RegistrationReviewEnabled != nil {
 		registrationReviewEnabled = *req.RegistrationReviewEnabled
+	}
+	registrationReviewInstructions := previousSettings.RegistrationReviewInstructions
+	if req.RegistrationReviewInstructions != nil {
+		registrationReviewInstructions = strings.TrimSpace(*req.RegistrationReviewInstructions)
+	}
+	registrationReasonMaxLength := previousSettings.RegistrationReasonMaxLength
+	if req.RegistrationReasonMaxLength != nil {
+		registrationReasonMaxLength = *req.RegistrationReasonMaxLength
 	}
 	stepUpEnabled := previousSettings.StepUpEnabled
 	if req.StepUpEnabled != nil {
@@ -1535,6 +1545,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		RegistrationEnabled:                 req.RegistrationEnabled,
 		EmailVerifyEnabled:                  req.EmailVerifyEnabled,
 		RegistrationReviewEnabled:           registrationReviewEnabled,
+		RegistrationReviewInstructions:      registrationReviewInstructions,
+		RegistrationReasonMaxLength:         registrationReasonMaxLength,
 		RegistrationEmailSuffixWhitelist:    req.RegistrationEmailSuffixWhitelist,
 		RegistrationEmailDomainQuotaEnabled: registrationEmailDomainQuotaEnabled,
 		PromoCodeEnabled:                    req.PromoCodeEnabled,
@@ -2201,6 +2213,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		RegistrationEnabled:                                    updatedSettings.RegistrationEnabled,
 		EmailVerifyEnabled:                                     updatedSettings.EmailVerifyEnabled,
 		RegistrationReviewEnabled:                              updatedSettings.RegistrationReviewEnabled,
+		RegistrationReviewInstructions:                         updatedSettings.RegistrationReviewInstructions,
+		RegistrationReasonMaxLength:                            updatedSettings.RegistrationReasonMaxLength,
 		RegistrationEmailSuffixWhitelist:                       updatedSettings.RegistrationEmailSuffixWhitelist,
 		RegistrationEmailDomainQuotaEnabled:                    updatedSettings.RegistrationEmailDomainQuotaEnabled,
 		PromoCodeEnabled:                                       updatedSettings.PromoCodeEnabled,

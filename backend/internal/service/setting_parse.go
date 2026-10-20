@@ -322,6 +322,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		RegistrationEnabled:                    settings[SettingKeyRegistrationEnabled] == "true",
 		EmailVerifyEnabled:                     emailVerifyEnabled,
 		RegistrationReviewEnabled:              settings[SettingKeyRegistrationReviewEnabled] == "true",
+		RegistrationReviewInstructions:         strings.TrimSpace(settings[SettingKeyRegistrationReviewInstructions]),
+		RegistrationReasonMaxLength:            parseRegistrationReasonMaxLength(settings[SettingKeyRegistrationReasonMaxLength]),
 		RegistrationEmailSuffixWhitelist:       ParseRegistrationEmailSuffixWhitelist(settings[SettingKeyRegistrationEmailSuffixWhitelist]),
 		RegistrationEmailDomainQuotaEnabled:    settings[SettingKeyRegistrationEmailDomainQuotaEnabled] == "true",
 		PromoCodeEnabled:                       settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用

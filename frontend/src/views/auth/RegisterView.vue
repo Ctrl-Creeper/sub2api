@@ -237,17 +237,12 @@
 
         <!-- Registration Reason (required when registration review is enabled) -->
         <div v-if="registrationReviewEnabled" data-testid="registration-reason-field">
-          <label for="registration_reason" class="input-label">
-            {{ t('auth.registrationReasonLabel') }}
-          </label>
-          <textarea
+          <RegistrationReasonField
             id="registration_reason"
             v-model="formData.registration_reason"
-            rows="3"
-            maxlength="500"
             :disabled="registrationActionDisabled"
-            class="input resize-none"
-            :placeholder="t('auth.registrationReasonPlaceholder')"
+            :instructions="registrationReviewInstructions"
+            :max-length="registrationReasonMaxLength"
           />
           <p class="mt-1.5 text-xs text-gray-400 dark:text-dark-500">
             {{ t('auth.registrationReviewNotice') }}
@@ -384,6 +379,8 @@
 </template>
 
 <script setup lang="ts">
+import RegistrationReasonField from '@/components/auth/RegistrationReasonField.vue'
+import { useRegistrationReview } from '@/composables/useRegistrationReview'
 import { DEFAULT_SITE_NAME, resolveSiteName } from '@/utils/siteBranding'
 import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -444,6 +441,7 @@ const confirmPassword = ref('')
 const registrationEnabled = ref<boolean>(true)
 const emailVerifyEnabled = ref<boolean>(false)
 // 注册审核：开启时注册表单展示"申请理由"必填项，注册后等待管理员审核。
+const { registrationReviewSettings, registrationReviewInstructions, registrationReasonMaxLength, registrationReasonError } = useRegistrationReview()
 const registrationReviewEnabled = ref<boolean>(false)
 // Public settings are injected into the app store before Vue mounts. Use that
 // value for the first render so a disabled promo-code field never flashes
@@ -589,6 +587,7 @@ onMounted(async () => {
 
   try {
     const settings = await getPublicSettings()
+    registrationReviewSettings.value = settings
     registrationEnabled.value = settings.registration_enabled
     emailVerifyEnabled.value = settings.email_verify_enabled
     registrationReviewEnabled.value = settings.registration_review_enabled === true
@@ -1011,8 +1010,8 @@ function validateForm(): boolean {
   }
 
   // Registration review: reason is required so the admin has something to review.
-  if (registrationReviewEnabled.value && !formData.registration_reason.trim()) {
-    errors.registration_reason = t('auth.registrationReasonRequired')
+  if (registrationReviewEnabled.value && registrationReasonError(formData.registration_reason)) {
+    errors.registration_reason = registrationReasonError(formData.registration_reason)
     isValid = false
   }
 
