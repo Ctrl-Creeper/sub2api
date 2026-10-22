@@ -134,6 +134,7 @@ const mountBulkDeleteView = () => mount(UsersView, {
   global: {
     stubs: {
       AppLayout: { template: '<div><slot /></div>' },
+      RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
       TablePageLayout: {
         template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
       },
@@ -224,6 +225,7 @@ describe('admin UsersView', () => {
     const button = wrapper.get('[data-test="actions-42"]').findAll('button')
       .find(candidate => candidate.text() === `admin.users.${action}`)
     expect(button, `pending applicant must offer ${action}`).toBeDefined()
+    expect(wrapper.get('[data-test="actions-42"] a').attributes('href')).toBe('/admin/users/42/registration-review')
     await button!.trigger('click')
     await flushPromises()
 
@@ -399,6 +401,7 @@ describe('admin UsersView', () => {
       global: {
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
+          RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
           TablePageLayout: {
             template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
           },
@@ -485,6 +488,7 @@ describe('admin UsersView', () => {
       global: {
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
+          RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
           TablePageLayout: {
             template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
           },
@@ -563,6 +567,7 @@ describe('admin UsersView', () => {
       global: {
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
+          RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
           TablePageLayout: {
             template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
           },
