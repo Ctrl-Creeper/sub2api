@@ -581,7 +581,7 @@
             />
           </template>
 
-          <template #cell-status="{ value, row }">
+          <template #cell-status="{ value }">
             <div class="flex items-center gap-1.5">
               <span
                 :class="[
@@ -598,19 +598,6 @@
                       : t('admin.users.disabled')
                 }}
               </span>
-              <!-- 注册审核：待审核用户展示申请理由 tooltip -->
-              <div
-                v-if="value === 'pending' && row.registration_reason"
-                class="group/reason relative inline-flex cursor-default"
-              >
-                <Icon name="infoCircle" size="xs" class="h-3.5 w-3.5 text-yellow-500" />
-                <div
-                  class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 max-w-xs -translate-x-1/2 whitespace-normal rounded bg-gray-900 px-2.5 py-1.5 text-xs text-white opacity-0 shadow-lg transition-opacity duration-75 group-hover/reason:opacity-100 dark:bg-dark-600"
-                >
-                  {{ row.registration_reason }}
-                  <div class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-dark-600"></div>
-                </div>
-              </div>
             </div>
           </template>
 
@@ -632,6 +619,14 @@
 
           <template #cell-actions="{ row }">
             <div class="flex items-center gap-1">
+              <RouterLink
+                v-if="row.status === 'pending' || row.registration_reason"
+                :to="`/admin/users/${row.id}/registration-review`"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-dark-700"
+              >
+                <Icon name="infoCircle" size="sm" />
+                <span class="text-xs">{{ t('admin.users.reviewDetails') }}</span>
+              </RouterLink>
               <!-- Edit Button -->
               <button
                 @click="handleEdit(row)"
