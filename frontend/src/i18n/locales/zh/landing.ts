@@ -11,25 +11,26 @@ export default {
     switchToDark: '切换到深色模式',
     dashboard: '控制台',
     login: '登录',
-    getStarted: '开始使用 GPT',
+    getStarted: '开始使用 GPT 与 Claude',
     goToDashboard: '进入控制台',
-    heroDescription: '提供满血官方 GPT 服务，专为学生提供极低价格。',
+    heroDescription: '提供满血官方 GPT 与 Claude 服务，专为学生提供极低价格。',
     tags: {
-      officialGpt: '官方 GPT',
+      officialModels: '官方 GPT 与 Claude',
       studentPricing: '学生低价',
       usageBilling: '按量计费'
     },
     features: {
       officialService: '提供满血官方服务',
-      officialServiceDesc: '接入 OpenAI 官方 GPT 服务，用于答疑、写作和代码学习。',
+      officialServiceDesc: '接入 OpenAI GPT 与 Anthropic Claude 官方服务，用于答疑、写作和代码学习。',
       studentPricing: '专为学生提供极低价格',
-      studentPricingDesc: '面向学生提供低价 GPT 调用，让日常学习也能用得起。',
+      studentPricingDesc: '面向学生提供低价 GPT 与 Claude 调用，让日常学习也能用得起。',
       usageBilling: '按量计费，支出可查',
       usageBillingDesc: '按实际用量计费，在控制台查看余额与调用明细，掌握每次使用的成本。'
     },
     providers: {
-      title: '仅提供 GPT',
+      title: '支持 GPT 与 Claude',
       description: 'OpenAI 官方 GPT 服务',
+      claudeDescription: 'Anthropic 官方 Claude 服务',
       supported: '已支持'
     },
     footer: {

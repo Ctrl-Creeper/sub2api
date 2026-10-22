@@ -194,30 +194,32 @@
             <Icon name="arrowRight" size="md" :stroke-width="2" />
           </router-link>
           <div class="home-service-notes">
-            <span>{{ t('home.tags.officialGpt') }}</span>
+            <span>{{ t('home.tags.officialModels') }}</span>
             <span>{{ t('home.tags.studentPricing') }}</span>
             <span>{{ t('home.tags.usageBilling') }}</span>
           </div>
         </div>
 
-        <aside class="home-model" :aria-label="t('home.providers.title')">
-          <div class="home-model-heading">
-            <h2>GPT</h2>
-            <p>{{ t('home.providers.description') }}</p>
-            <span class="home-model-status">{{ t('home.providers.supported') }}</span>
-          </div>
-          <div class="terminal-container">
-            <div class="terminal-window">
-              <div class="terminal-header">OpenAI API</div>
-              <div class="terminal-body">
-                <div class="code-line"><span class="code-prompt">$</span> curl -X POST</div>
-                <div class="code-line code-url">/v1/chat/completions</div>
-                <div class="code-line code-success">200 OK</div>
-                <div class="code-line code-response">{ "object": "chat.completion" }</div>
+        <section class="home-models" :aria-label="t('home.providers.title')">
+          <article v-for="provider in providers" :key="provider.name" class="home-model">
+            <div class="home-model-heading">
+              <h2>{{ provider.name }}</h2>
+              <p>{{ t(provider.descriptionKey) }}</p>
+              <span class="home-model-status">{{ t('home.providers.supported') }}</span>
+            </div>
+            <div class="terminal-container">
+              <div class="terminal-window">
+                <div class="terminal-header">{{ provider.api }}</div>
+                <div class="terminal-body">
+                  <div class="code-line"><span class="code-prompt">$</span> curl -X POST</div>
+                  <div class="code-line code-url">{{ provider.endpoint }}</div>
+                  <div class="code-line code-success">200 OK</div>
+                  <div class="code-line code-response">{{ provider.response }}</div>
+                </div>
               </div>
             </div>
-          </div>
-        </aside>
+          </article>
+        </section>
       </div>
 
       <section class="home-features">
@@ -265,6 +267,11 @@ const { t } = useI18n()
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
+
+const providers = [
+  { name: 'GPT', api: 'OpenAI API', descriptionKey: 'home.providers.description', endpoint: '/v1/chat/completions', response: '{ "object": "chat.completion" }' },
+  { name: 'Claude', api: 'Anthropic API', descriptionKey: 'home.providers.claudeDescription', endpoint: '/v1/messages', response: '{ "type": "message" }' }
+]
 
 const features = computed(() => [
   { title: t('home.features.officialService'), description: t('home.features.officialServiceDesc') },
@@ -414,6 +421,7 @@ onMounted(() => {
 }
 .home-service-notes span:nth-child(2)::before { background: #f5a100; }
 .home-service-notes span:nth-child(3)::before { background: #81b934; }
+.home-models { display: grid; gap: 20px; min-width: 0; }
 .home-model {
   @apply border border-gray-200 bg-white text-gray-900 dark:border-dark-700 dark:bg-dark-950 dark:text-white;
   min-width: 0;

@@ -11,25 +11,26 @@ export default {
     switchToDark: 'Switch to Dark Mode',
     dashboard: 'Dashboard',
     login: 'Login',
-    getStarted: 'Start Using GPT',
+    getStarted: 'Start Using GPT & Claude',
     goToDashboard: 'Go to Dashboard',
-    heroDescription: 'Full-capability official GPT service at ultra-low prices for students.',
+    heroDescription: 'Full-capability official GPT and Claude services at ultra-low prices for students.',
     tags: {
-      officialGpt: 'Official GPT',
+      officialModels: 'Official GPT & Claude',
       studentPricing: 'Student Prices',
       usageBilling: 'Usage-Based Billing'
     },
     features: {
       officialService: 'Full-Capability Official Service',
-      officialServiceDesc: 'Access official OpenAI GPT for study questions, writing and learning to code.',
+      officialServiceDesc: 'Access official OpenAI GPT and Anthropic Claude for study questions, writing and learning to code.',
       studentPricing: 'Ultra-Low Prices for Students',
-      studentPricingDesc: 'Low-cost GPT access for students, priced for everyday learning.',
+      studentPricingDesc: 'Low-cost GPT and Claude access for students, priced for everyday learning.',
       usageBilling: 'Pay by Usage, Track Your Spending',
       usageBillingDesc: 'Pay for actual usage and check your balance and request costs in the dashboard.'
     },
     providers: {
-      title: 'GPT Only',
+      title: 'GPT & Claude',
       description: 'Official OpenAI GPT service',
+      claudeDescription: 'Official Anthropic Claude service',
       supported: 'Supported'
     },
     footer: {
