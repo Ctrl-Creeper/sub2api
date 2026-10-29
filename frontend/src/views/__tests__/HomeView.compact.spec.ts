@@ -111,6 +111,18 @@ describe('HomeView compact mode', () => {
     expect(wrapper.find('.terminal-container').exists()).toBe(true)
   })
 
+  it('shows GPT, Claude, GLM, DeepSeek, and Grok model cards with their API examples', () => {
+    const wrapper = mountHome()
+
+    expect(wrapper.findAll('.home-model')).toHaveLength(5)
+    expect(wrapper.text()).toContain('GLM')
+    expect(wrapper.text()).toContain('DeepSeek')
+    expect(wrapper.text()).toContain('Grok')
+    expect(wrapper.text()).toContain('/v1/chat/completions')
+    expect(wrapper.text()).toContain('/v1/messages')
+    expect(wrapper.text()).toContain('{ "object": "chat.completion" }')
+  })
+
   it('links unauthenticated visitors to login', () => {
     expect(compactDestination(mountHome({ compact_home_enabled: true }))).toBe('/login')
   })

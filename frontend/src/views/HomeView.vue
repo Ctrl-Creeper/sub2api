@@ -270,7 +270,10 @@ const appStore = useAppStore()
 
 const providers = [
   { name: 'GPT', api: 'OpenAI API', descriptionKey: 'home.providers.description', endpoint: '/v1/chat/completions', response: '{ "object": "chat.completion" }' },
-  { name: 'Claude', api: 'Anthropic API', descriptionKey: 'home.providers.claudeDescription', endpoint: '/v1/messages', response: '{ "type": "message" }' }
+  { name: 'Claude', api: 'Anthropic API', descriptionKey: 'home.providers.claudeDescription', endpoint: '/v1/messages', response: '{ "type": "message" }' },
+  { name: 'GLM', api: '智谱 GLM API', descriptionKey: 'home.providers.glmDescription', endpoint: '/v1/chat/completions', response: '{ "object": "chat.completion" }' },
+  { name: 'DeepSeek', api: 'DeepSeek API', descriptionKey: 'home.providers.deepseekDescription', endpoint: '/v1/chat/completions', response: '{ "object": "chat.completion" }' },
+  { name: 'Grok', api: 'xAI Grok API', descriptionKey: 'home.providers.grokDescription', endpoint: '/v1/chat/completions', response: '{ "object": "chat.completion" }' }
 ]
 
 const features = computed(() => [
