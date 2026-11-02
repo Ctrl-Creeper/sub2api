@@ -178,7 +178,7 @@ func TestOAuthReviewCompletionAdvertisesReasonAndActiveLoginStillWorks(t *testin
 	handler, client := newOAuthPendingFlowTestHandlerWithDependencies(t, oauthPendingFlowTestHandlerOptions{
 		settingValues: map[string]string{service.SettingKeyRegistrationReviewEnabled: "true"},
 	})
-	c, recorder := reviewOAuthContext(t, "")
+	c, _ := reviewOAuthContext(t, "")
 	c.Request.Method = http.MethodGet
 	handler.emailOAuthCallbackWithProfile(c, "github", config.EmailOAuthProviderConfig{}, "/auth/oauth/callback", "/dashboard", &emailOAuthProfile{
 		Subject: "review-subject", Email: "review@example.com", EmailVerified: true, Username: "review-user",
@@ -194,7 +194,7 @@ func TestOAuthReviewCompletionAdvertisesReasonAndActiveLoginStillWorks(t *testin
 	require.NoError(t, err)
 	_, err = client.AuthIdentity.Create().SetUserID(user.ID).SetProviderType("github").SetProviderKey("github").SetProviderSubject("active-subject").Save(context.Background())
 	require.NoError(t, err)
-	c, recorder = reviewOAuthContext(t, "")
+	c, recorder := reviewOAuthContext(t, "")
 	c.Request.Method = http.MethodGet
 	handler.emailOAuthCallbackWithProfile(c, "github", config.EmailOAuthProviderConfig{}, "/auth/oauth/callback", "/dashboard", &emailOAuthProfile{
 		Subject: "active-subject", Email: "active@example.com", EmailVerified: true, Username: "active-user",

@@ -211,7 +211,7 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 
 	// Protect admin accounts from any explicit non-active status.
 	if user.Role == RoleAdmin && input.Status != "" && input.Status != StatusActive {
-		return nil, errors.New("cannot make admin user inactive")
+		return nil, infraerrors.BadRequest("ADMIN_DISABLE_FORBIDDEN", "cannot disable admin user; change the role to user first")
 	}
 	// Check the resulting role and status before mutating the loaded account.
 	finalRole := user.Role

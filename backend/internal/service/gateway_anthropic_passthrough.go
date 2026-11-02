@@ -330,9 +330,10 @@ func (s *GatewayService) buildUpstreamRequestAnthropicAPIKeyPassthrough(
 	}
 	// 身份改写的最终 beta 语义：hermes 固定两项 beta，plain 无 beta——
 	// 与 header 层 applyAnthropicOutboundIdentityHeaders 写入的值同源。
-	if outboundIdentity == OutboundIdentityHermes {
+	switch outboundIdentity {
+	case OutboundIdentityHermes:
 		clientBeta = claude.HermesBetaHeader
-	} else if outboundIdentity == OutboundIdentityPlain {
+	case OutboundIdentityPlain:
 		clientBeta = ""
 	}
 	if sanitized, changed := sanitizeAnthropicBodyForBetaTokens(body, clientBeta); changed {
