@@ -55,9 +55,9 @@ type RegisterRequest struct {
 	TurnstileToken        string `json:"turnstile_token"`
 	TencentCaptchaTicket  string `json:"tencent_captcha_ticket"`
 	TencentCaptchaRandstr string `json:"tencent_captcha_randstr"`
-	PromoCode             string `json:"promo_code"`      // 注册优惠码
-	InvitationCode        string `json:"invitation_code"` // 邀请码
-	AffCode               string `json:"aff_code"`        // 邀请返利码
+	PromoCode             string `json:"promo_code"`          // 注册优惠码
+	InvitationCode        string `json:"invitation_code"`     // 邀请码
+	AffCode               string `json:"aff_code"`            // 邀请返利码
 	RegistrationReason    string `json:"registration_reason"` // 注册审核：申请理由
 }
 
