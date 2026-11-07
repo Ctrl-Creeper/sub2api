@@ -21,9 +21,9 @@ GitHub 定时任务可能延迟；fork 不会直接收到上游的 `release` 事
    不配置时使用 `GITHUB_TOKEN`；权限不足会报错并开 Issue，不会忽略上游改动。
 4. **Actions → Sync upstream release → Run workflow** 可立即运行。
    `tag` 留空代表最新正式版，也可填 `v0.2.13` 等**上游**已发布版本。
-   `revision` 留空时新上游版本从 `1` 开始，已完成版本跳过，未完成版本沿用原标签。
+   `revision` 留空时取全局修订号加一（见下），已完成版本跳过，未完成版本沿用原标签。
    修改前端并提交后，填 `revision=next` 可为同一上游生成下一个修订号；也可填
-   正整数（如 `2`）。存在未完成修订时先重试它，不会自动跳过并新增版本。
+   比当前最大修订号更大的正整数。存在未完成修订时先重试它，不会自动跳过并新增版本。
 
 正常情况下不需要 DockerHub 凭据：发布到 fork 自己的 GitHub Releases 和
 `ghcr.io/ctrl-creeper/sub2api`。已有 DockerHub 配置继续生效。
@@ -42,7 +42,8 @@ GitHub 定时任务可能延迟；fork 不会直接收到上游的 `release` 事
   fork 标签重写；其他文件仍需人工解决。
 - 更新 `backend/cmd/server/VERSION`，提交同步记录
   `.github/upstream-sync/state.json`，在 fork 的提交创建 `上游标号-修订号` 标签。
-  例如上游 `v0.2.14` 对应 fork `v0.2.14-1`，修订号从 `1` 开始。
+  修订号是整个 fork 共用的递增计数，只增不减、不随上游版本重置：
+  取所有 fork 标签及同步记录中的最大修订号加一，例如 `v0.2.19-6` 之后上游 `v0.2.20` 对应 `v0.2.20-7`。
   记录分别保存 `upstream_tag`、fork `tag`、`revision` 和上游提交，源标签不会被混用。
 - 默认分支和标签使用原子推送，不强制推送。
 - 直接调用可复用的 `release.yml` 构建并发布该标签。
