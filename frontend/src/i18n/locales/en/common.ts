@@ -252,6 +252,7 @@ export default {
       REGISTRATION_REASON_TOO_LONG: 'The application reason exceeds the site character limit.',
       REGISTRATION_PENDING:
         'Your registration is pending admin review. You can log in once it has been approved.',
+      EMAIL_BLOCKED: 'This email address is not allowed. Please use a different one.',
     },
     registrationFailed: 'Registration failed. Please try again.',
     emailDomainRegistrationLimit:

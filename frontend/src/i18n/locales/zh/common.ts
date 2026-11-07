@@ -251,6 +251,7 @@ export default {
       REGISTRATION_REASON_REQUIRED: '请填写申请理由。',
       REGISTRATION_REASON_TOO_LONG: '申请理由超过本站设置的字数上限。',
       REGISTRATION_PENDING: '您的注册申请正在等待管理员审核，审核通过后即可登录。',
+      EMAIL_BLOCKED: '该邮箱不允许注册，请更换其他邮箱。',
     },
     registrationFailed: '注册失败，请重试。',
     emailDomainRegistrationLimit:
