@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 STATE = Path('.github/upstream-sync/state.json')
 ISSUE_MARKER = '<!-- bnds-upstream-release-sync -->'
 TAG_RE = re.compile(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?')
-FORK_TAG_RE = re.compile(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?-[1-9]\d*')
+FORK_TAG_RE = re.compile(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?-([1-9]\d*)')
 REPO_RE = re.compile(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+')
 FORK_READMES = ('README.md', 'README_CN.md', 'README_JA.md')
 
@@ -141,7 +141,7 @@ def merge_release(upstream_sha, tag):
 
 
 def select_tag(upstream_tag, release, state, revision):
-    """Blank input is idempotent; 'next' explicitly builds a new fork revision."""
+    """Blank input reuses a pending build, else takes the next fork-wide revision; 'next' forces a new one."""
     same = (state.get('upstream_tag', state.get('tag')) == upstream_tag
             and state.get('release_id') == release['id'])
     if same and not state.get('published') and FORK_TAG_RE.fullmatch(state.get('tag', '')):
@@ -151,21 +151,17 @@ def select_tag(upstream_tag, release, state, revision):
     if (same and state.get('published') and not revision
             and FORK_TAG_RE.fullmatch(state.get('tag', ''))):
         return None
-    if revision == 'next':
-        pattern = re.compile(re.escape(upstream_tag) + r'-([1-9]\d*)')
-        revisions = [int(match[1]) for tag in git('tag', '--list', upstream_tag + '-*').stdout.splitlines()
-                     if (match := pattern.fullmatch(tag))]
-        if same and state.get('revision'):
-            revisions.append(state['revision'])
-        number = max(revisions, default=0) + 1
-    elif revision:
+    # One fork-wide counter that only increases (v0.2.19-6 -> v0.2.20-7); never resets per upstream.
+    used = [int(m[1]) for tag in git('tag', '--list').stdout.split() if (m := FORK_TAG_RE.fullmatch(tag))]
+    latest = max(used + [state.get('revision') or 0])
+    if revision and revision != 'next':
         if not re.fullmatch(r'[1-9]\d*', revision):
             raise ValueError('revision must be a positive integer or next')
         number = int(revision)
+        if number <= latest:
+            raise ValueError(f'revision must be greater than the latest fork revision {latest}')
     else:
-        number = 1
-    if same and state.get('published') and number <= state.get('revision', 0):
-        raise ValueError('revision must be newer than the published fork revision')
+        number = latest + 1
     return f'{upstream_tag}-{number}'
 
 

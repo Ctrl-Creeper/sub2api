@@ -221,14 +221,19 @@ class SyncTest(unittest.TestCase):
         self.api.release.assert_called_once_with('', upstream=True)
         self.assertNotIn('ready=true', Path(os.environ['GITHUB_OUTPUT']).read_text())
 
-    def test_new_upstream_starts_at_one_and_manual_next_increments_numerically(self):
+    def test_revision_is_one_increasing_counter_across_upstream_versions(self):
         state = {'upstream_tag': 'v1.1.0', 'tag': 'v1.1.0-2', 'revision': 2,
                  'release_id': 42, 'published': True}
         self.assertIsNone(sync.select_tag('v1.1.0', self.release, state, ''))
         sync.git('tag', 'v1.1.0-10')
         self.assertEqual(sync.select_tag('v1.1.0', self.release, state, 'next'), 'v1.1.0-11')
         newer = {**self.release, 'id': 43, 'tag_name': 'v1.2.0'}
-        self.assertEqual(sync.select_tag('v1.2.0', newer, state, ''), 'v1.2.0-1')
+        # A new upstream version continues the counter instead of restarting at 1.
+        self.assertEqual(sync.select_tag('v1.2.0', newer, state, ''), 'v1.2.0-11')
+        self.assertEqual(sync.select_tag('v1.2.0', newer, state, '12'), 'v1.2.0-12')
+        for revision in ('10', '5'):
+            with self.subTest(revision=revision), self.assertRaisesRegex(ValueError, 'greater than'):
+                sync.select_tag('v1.2.0', newer, state, revision)
         for revision in ('0', '-1', '01', '1.2', 'bad'):
             with self.subTest(revision=revision), self.assertRaises(ValueError):
                 sync.select_tag('v1.1.0', self.release, state, revision)
