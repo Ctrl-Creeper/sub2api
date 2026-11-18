@@ -221,22 +221,23 @@ class SyncTest(unittest.TestCase):
         self.api.release.assert_called_once_with('', upstream=True)
         self.assertNotIn('ready=true', Path(os.environ['GITHUB_OUTPUT']).read_text())
 
-    def test_revision_is_one_increasing_counter_across_upstream_versions(self):
+    def test_sync_reuses_current_revision_and_manual_next_adds_one(self):
         state = {'upstream_tag': 'v1.1.0', 'tag': 'v1.1.0-2', 'revision': 2,
                  'release_id': 42, 'published': True}
         self.assertIsNone(sync.select_tag('v1.1.0', self.release, state, ''))
         sync.git('tag', 'v1.1.0-10')
         self.assertEqual(sync.select_tag('v1.1.0', self.release, state, 'next'), 'v1.1.0-11')
         newer = {**self.release, 'id': 43, 'tag_name': 'v1.2.0'}
-        # A new upstream version continues the counter instead of restarting at 1.
-        self.assertEqual(sync.select_tag('v1.2.0', newer, state, ''), 'v1.2.0-11')
+        # Syncing a new upstream version reuses the current number; only a manual change adds one.
+        self.assertEqual(sync.select_tag('v1.2.0', newer, state, ''), 'v1.2.0-10')
+        self.assertEqual(sync.select_tag('v1.2.0', newer, state, 'next'), 'v1.2.0-11')
         self.assertEqual(sync.select_tag('v1.2.0', newer, state, '12'), 'v1.2.0-12')
-        for revision in ('10', '5'):
-            with self.subTest(revision=revision), self.assertRaisesRegex(ValueError, 'greater than'):
-                sync.select_tag('v1.2.0', newer, state, revision)
-        for revision in ('0', '-1', '01', '1.2', 'bad'):
-            with self.subTest(revision=revision), self.assertRaises(ValueError):
-                sync.select_tag('v1.1.0', self.release, state, revision)
+        with self.assertRaisesRegex(ValueError, 'lower than'):
+            sync.select_tag('v1.2.0', newer, state, '9')
+        # Re-requesting the same number for an already published upstream is refused.
+        published = {**state, 'tag': 'v1.1.0-10', 'revision': 10}
+        with self.assertRaisesRegex(ValueError, 'newer than'):
+            sync.select_tag('v1.1.0', self.release, published, '10')
 
     def test_pending_revision_is_retried_without_incrementing(self):
         state = {'upstream_tag': 'v1.1.0', 'tag': 'v1.1.0-2', 'revision': 2,
