@@ -1,6 +1,6 @@
 # 上游 Release 自动同步
 
-`sync-upstream-release.yml` 每小时的第 17 分钟检查
+`sync-upstream-release.yml` 每天 UTC 02:17 检查
 [`Wei-Shaw/sub2api`](https://github.com/Wei-Shaw/sub2api) 的最新正式 Release。
 GitHub 定时任务可能延迟；fork 不会直接收到上游的 `release` 事件。
 首次启用时会同步当前最新正式版。预发布版本不自动同步，可手动指定其标签。
@@ -72,7 +72,7 @@ Issue，附 Actions 链接、失败 job 和冲突文件。默认提及仓库所�
 已有 **`TELEGRAM_BOT_TOKEN`** 和 **`TELEGRAM_CHAT_ID`** 时，也会发送 Telegram 提醒；
 未配置时不需要 Telegram。GitHub Issue 是主要通知，Telegram 发送失败不影响它。
 
-同一告警会更新现有 Issue，后续定时运行会暂停，避免每小时重复提醒。
+同一告警会更新现有 Issue，后续定时运行会暂停，避免重复提醒。
 手动运行可重试。失败报告 `upstream-sync-report` 作为 Actions artifact 保留 14 天。
 若 Issue 通知本身失败，Actions 的失败状态仍会保留；检查仓库 Issues 和权限设置。
 
