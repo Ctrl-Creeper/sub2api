@@ -1,10 +1,10 @@
 {
   "upstream_repository": "Wei-Shaw/sub2api",
-  "upstream_tag": "v0.2.22",
+  "upstream_tag": "v0.2.23",
   "revision": 8,
-  "tag": "v0.2.22-8",
-  "upstream_sha": "b0fa9f3e6eeab1968a53e1289b69daa4bb40ca2b",
-  "release_id": 448020118,
-  "published_at": "2026-11-17T02:48:12Z",
-  "published": true
+  "tag": "v0.2.23-8",
+  "upstream_sha": "5af9afb588c4b014b3df9db7d4073af1f8ae01b6",
+  "release_id": 449502473,
+  "published_at": "2026-11-18T03:51:33Z",
+  "published": false
 }
