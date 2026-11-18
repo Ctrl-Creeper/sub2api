@@ -141,7 +141,7 @@ def merge_release(upstream_sha, tag):
 
 
 def select_tag(upstream_tag, release, state, revision):
-    """Blank input reuses a pending build, else takes the next fork-wide revision; 'next' forces a new one."""
+    """Blank input reuses a pending build, else the current fork-wide revision; 'next' adds one."""
     same = (state.get('upstream_tag', state.get('tag')) == upstream_tag
             and state.get('release_id') == release['id'])
     if same and not state.get('published') and FORK_TAG_RE.fullmatch(state.get('tag', '')):
@@ -151,17 +151,22 @@ def select_tag(upstream_tag, release, state, revision):
     if (same and state.get('published') and not revision
             and FORK_TAG_RE.fullmatch(state.get('tag', ''))):
         return None
-    # One fork-wide counter that only increases (v0.2.19-6 -> v0.2.20-7); never resets per upstream.
+    # One fork-wide counter that never decreases. Syncing a new upstream version reuses the current
+    # number (v0.2.21-8 -> v0.2.22-8); a manual addition bumps it ('next' = n + 1).
     used = [int(m[1]) for tag in git('tag', '--list').stdout.split() if (m := FORK_TAG_RE.fullmatch(tag))]
-    latest = max(used + [state.get('revision') or 0])
-    if revision and revision != 'next':
+    latest = max(used + [state.get('revision') or 0, 1])
+    if revision == 'next':
+        number = latest + 1
+    elif revision:
         if not re.fullmatch(r'[1-9]\d*', revision):
             raise ValueError('revision must be a positive integer or next')
         number = int(revision)
-        if number <= latest:
-            raise ValueError(f'revision must be greater than the latest fork revision {latest}')
+        if number < latest:
+            raise ValueError(f'revision must not be lower than the latest fork revision {latest}')
     else:
-        number = latest + 1
+        number = latest
+    if same and state.get('published') and number <= state.get('revision', 0):
+        raise ValueError('revision must be newer than the published fork revision')
     return f'{upstream_tag}-{number}'
 
 
