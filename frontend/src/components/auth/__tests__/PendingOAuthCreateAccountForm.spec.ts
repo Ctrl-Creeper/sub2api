@@ -227,29 +227,32 @@ describe('PendingOAuthCreateAccountForm', () => {
       turnstile_enabled: false,
       turnstile_site_key: ''
     })
+    sendPendingOAuthVerifyCode.mockResolvedValue({ countdown: 60 })
 
     const wrapper = mount(PendingOAuthCreateAccountForm, {
       props: {
-        testIdPrefix: 'linuxdo',
+        providerName: 'WeChat',
+        testIdPrefix: 'wechat',
         initialEmail: 'prefill@example.com',
         isSubmitting: false
       }
     })
 
     await flushPromises()
-    await wrapper.get('[data-testid="linuxdo-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('secret-123')
     if (review) await wrapper.get('textarea').setValue('Research access')
-    expect(wrapper.find('[data-testid="linuxdo-create-account-verify-code"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="linuxdo-create-account-send-code"]').exists()).toBe(true)
-    expect(wrapper.get('[data-testid="linuxdo-create-account-submit"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('[data-testid="wechat-create-account-verify-code"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="wechat-create-account-send-code"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('auth.verificationCodeHint')
+    expect(wrapper.get('[data-testid="wechat-create-account-submit"]').attributes('disabled')).toBeDefined()
     await wrapper.get('form').trigger('submit.prevent')
     expect(wrapper.emitted('submit')).toBeUndefined()
 
     sendPendingOAuthVerifyCode.mockResolvedValue({ countdown: 0 })
-    await wrapper.get('[data-testid="linuxdo-create-account-send-code"]').trigger('click')
+    await wrapper.get('[data-testid="wechat-create-account-send-code"]').trigger('click')
     await flushPromises()
     expect(sendPendingOAuthVerifyCode).toHaveBeenCalledWith(expect.objectContaining({ email: 'prefill@example.com' }))
-    await wrapper.get('[data-testid="linuxdo-create-account-verify-code"]').setValue('246810')
+    await wrapper.get('[data-testid="wechat-create-account-verify-code"]').setValue('246810')
     await wrapper.get('form').trigger('submit.prevent')
     expect(wrapper.emitted('submit')).toEqual([
       [

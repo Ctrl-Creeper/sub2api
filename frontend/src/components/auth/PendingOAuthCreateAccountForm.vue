@@ -34,6 +34,11 @@
         @error="onTurnstileError"
       />
     </div>
+    <!--
+      第三方首登建号时后端无条件校验本地邮箱验证码（VerifyOAuthEmailCode 有意独立于
+      全局 email_verify_enabled 开关，防止把他人邮箱绑进新账号），发码端点同样不看该开关。
+      因此这里不能按全局开关隐藏发码入口，否则关闭邮箱验证后用户无法完成建号。
+    -->
     <div class="flex gap-3">
       <input
         v-model="verifyCode"
